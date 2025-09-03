@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@schema-package/*": ["./*"],
+      "@db": ["../../packages/db/src/index.ts"],
+      "@db/*": ["../../packages/db/src/*"],
+    }
+  },
+  "exclude": ["node_modules"]
+}
