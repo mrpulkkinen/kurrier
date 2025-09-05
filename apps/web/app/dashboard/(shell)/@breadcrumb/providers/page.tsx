@@ -4,17 +4,23 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 
-export default function DashboardBreadcrumb() {
+export default function IdentitiesBreadcrumb() {
 	return (
 		<Breadcrumb>
 			<BreadcrumbList>
-				<BreadcrumbItem className="hidden md:block">
+				<BreadcrumbItem>
 					<BreadcrumbLink asChild>
 						<Link href="/dashboard">Dashboard</Link>
 					</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>Providers</BreadcrumbPage>
 				</BreadcrumbItem>
 			</BreadcrumbList>
 		</Breadcrumb>

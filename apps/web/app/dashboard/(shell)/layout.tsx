@@ -16,7 +16,7 @@ import {
 
 export default async function DashboardLayout({
 	children,
-    breadcrumb,
+	breadcrumb,
 }: {
 	children: React.ReactNode;
 	breadcrumb: React.ReactNode;
@@ -32,9 +32,8 @@ export default async function DashboardLayout({
 							orientation="vertical"
 							className="mr-2 data-[orientation=vertical]:h-4"
 						/>
-                        {breadcrumb ?? null} {/* fallback if no breadcrumb provided */}
-
-                        {/*<Breadcrumb>*/}
+						{breadcrumb ?? null} {/* fallback if no breadcrumb provided */}
+						{/*<Breadcrumb>*/}
 						{/*	<BreadcrumbList>*/}
 						{/*		<BreadcrumbItem className="hidden md:block">*/}
 						{/*			<BreadcrumbLink href="#">*/}

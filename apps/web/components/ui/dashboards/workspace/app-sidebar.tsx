@@ -2,27 +2,22 @@
 
 import * as React from "react";
 import {
-    Activity,
-    BookOpen,
-    Bot,
-    Building2,
-    Command,
-    Frame,
-    Inbox,
-    Key,
-    LayoutDashboard,
-    LifeBuoy, Mail, Mailbox,
-    Map,
-    PieChart,
-    Plug,
-    Send,
-    Settings2,
-    SquareTerminal,
-    User,
+	Activity,
+	BookOpen,
+	Building2,
+	Inbox,
+	Key,
+	LayoutDashboard,
+	LifeBuoy,
+	Mail,
+	Plug,
+	Send,
+	Settings2,
+	User,
 } from "lucide-react";
 
 import { NavMain } from "@/components/ui/dashboards/workspace/nav-main";
-import { NavProjects } from "@/components/nav-projects";
+// import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -49,21 +44,21 @@ const data = {
 			items: [],
 		},
 		{
-			title: "Identities",
-			url: "/dashboard/identities",
-			icon: Send, // or Mail icon if you prefer
-			items: [
-				{ title: "List", url: "/dashboard/identities" },
-				{ title: "Add Identity", url: "/dashboard/identities/new" },
-			],
-		},
-		{
 			title: "Providers",
 			url: "/dashboard/providers",
 			icon: Plug,
 			items: [
-				{ title: "Linked Providers", url: "/dashboard/providers" },
-				{ title: "Add Provider", url: "/dashboard/providers/new" },
+				// { title: "Linked Providers", url: "/dashboard/providers" },
+				// { title: "Add Provider", url: "/dashboard/providers/new" },
+			],
+		},
+		{
+			title: "Identities",
+			url: "/dashboard/identities",
+			icon: Send, // or Mail icon if you prefer
+			items: [
+				// { title: "List", url: "/dashboard/identities" },
+				// { title: "Add Identity", url: "/dashboard/identities/new" },
 			],
 		},
 		{
