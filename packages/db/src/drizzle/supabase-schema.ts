@@ -1,15 +1,9 @@
 import {
-    pgTable,
     jsonb,
     uuid,
-    date,
     varchar,
     text,
-    boolean,
-    integer,
-    pgSchema,
-    numeric,
-    timestamp, time, pgEnum, vector, index,
+    pgSchema
 } from "drizzle-orm/pg-core";
 
 const authSchema = pgSchema('auth');
@@ -25,5 +19,3 @@ export const objects = storageSchema.table('objects', {
     id: uuid('id').primaryKey(),
     name: text(),
 });
-
-

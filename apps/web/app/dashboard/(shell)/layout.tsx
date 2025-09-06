@@ -5,14 +5,6 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 export default async function DashboardLayout({
 	children,
@@ -21,7 +13,9 @@ export default async function DashboardLayout({
 	children: React.ReactNode;
 	breadcrumb: React.ReactNode;
 }) {
-	return (
+
+
+    return (
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>

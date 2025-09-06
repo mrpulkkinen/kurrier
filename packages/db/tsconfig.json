@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@db-package/*": ["./*"],
       "@schema": ["../../packages/schema/src/index.ts"],

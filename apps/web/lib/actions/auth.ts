@@ -63,6 +63,14 @@ export const isSignedIn = async () => {
 	return user;
 };
 
+export const currentSession = async () => {
+    const client = await createClient();
+    const {
+        data: { session },
+    } = await client.auth.getSession();
+    return session;
+};
+
 export const signOut = async (redirectUrl?: string) => {
 	const client = await createClient();
 	await client.auth.signOut();
