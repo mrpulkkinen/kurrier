@@ -1,11 +1,11 @@
 {
-  "id": "52e32648-6aac-45e9-888e-3170c12b7bde",
+  "id": "fa5be8bc-83a4-4e5e-9227-ac00b5d81774",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.email": {
-      "name": "email",
+    "public.emails": {
+      "name": "emails",
       "schema": "",
       "columns": {
         "id": {
@@ -31,9 +31,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "email_user_id_users_id_fk": {
-          "name": "email_user_id_users_id_fk",
-          "tableFrom": "email",
+        "emails_user_id_users_id_fk": {
+          "name": "emails_user_id_users_id_fk",
+          "tableFrom": "emails",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -49,6 +49,104 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.secrets_meta": {
+      "name": "secrets_meta",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "auth.uid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vault_secret": {
+          "name": "vault_secret",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "secrets_meta_owner_id_users_id_fk": {
+          "name": "secrets_meta_owner_id_users_id_fk",
+          "tableFrom": "secrets_meta",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "select_own": {
+          "name": "select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"secrets_meta\".\"owner_id\" = (select auth.uid())"
+        },
+        "insert_own": {
+          "name": "insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"secrets_meta\".\"owner_id\" = (select auth.uid())"
+        },
+        "update_own": {
+          "name": "update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"secrets_meta\".\"owner_id\" = (select auth.uid())",
+          "withCheck": "\"secrets_meta\".\"owner_id\" = (select auth.uid())"
+        },
+        "delete_own": {
+          "name": "delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"secrets_meta\".\"owner_id\" = (select auth.uid())"
+        }
+      },
       "checkConstraints": {},
       "isRLSEnabled": false
     }

@@ -8,13 +8,13 @@ export async function updateSession(request: NextRequest) {
 	});
 
 	const {
-		public: { NEXT_PUBLIC_SUPABASE_DOMAIN },
-		server: { NEXT_SUPABASE_SERVICE_ROLE_KEY },
+		public: { SUPABASE_DOMAIN },
+		server: { SUPABASE_SERVICE_ROLE_KEY },
 	} = getEnv();
 
 	const supabase = createServerClient(
-		NEXT_PUBLIC_SUPABASE_DOMAIN,
-		NEXT_SUPABASE_SERVICE_ROLE_KEY,
+        SUPABASE_DOMAIN,
+		SUPABASE_SERVICE_ROLE_KEY,
 		{
 			cookies: {
 				getAll() {

@@ -10,16 +10,17 @@ export const ZServerConfig = z.object({
     WORKER_PORT: ZPort.default(3001),
     NODE_ENV: ZNodeEnv.default("development"),
     DATABASE_URL: z.string("DATABASE_URL must be a valid Postgres connection URL"),
-    NEXT_SUPABASE_SERVICE_ROLE_KEY: z.string("NEXT_SUPABASE_SERVICE_ROLE_KEY must be present"),
+    DATABASE_RLS_URL: z.string("DATABASE_RLS_URL must be a valid Postgres connection URL"),
+    SUPABASE_SERVICE_ROLE_KEY: z.string("NEXT_SUPABASE_SERVICE_ROLE_KEY must be present"),
 });
 
 /** Safe to expose to the browser */
 export const ZPublicConfig = z.object({
     NEXT_PUBLIC_API_BASE: z
-        .string("NEXT_PUBLIC_API_BASE must be a valid URL")
+        .string("PUBLIC_API_BASE must be a valid URL")
         .optional(),
-    NEXT_PUBLIC_SUPABASE_DOMAIN: z.string("NEXT_SUPABASE_URL must be present"),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string("NEXT_PUBLIC_SUPABASE_ANON_KEY must be present"),
+    SUPABASE_DOMAIN: z.string("SUPABASE_DOMAIN must be present"),
+    SUPABASE_ANON_KEY: z.string("SUPABASE_ANON_KEY must be present"),
 });
 
 export type ServerConfig = z.infer<typeof ZServerConfig>;

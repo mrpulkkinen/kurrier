@@ -1,13 +1,10 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { getEnv } from "@schema";
+import {PublicConfig} from "@schema";
 
-export function createClient() {
-	const {
-		public: { NEXT_PUBLIC_SUPABASE_DOMAIN, NEXT_PUBLIC_SUPABASE_ANON_KEY },
-	} = getEnv();
+export function createClient(publicConfig: PublicConfig) {
 
 	return createBrowserClient(
-		NEXT_PUBLIC_SUPABASE_DOMAIN,
-		NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        publicConfig.SUPABASE_DOMAIN,
+        publicConfig.SUPABASE_ANON_KEY,
 	);
 }
