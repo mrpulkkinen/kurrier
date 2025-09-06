@@ -1,7 +1,6 @@
 {
-  "compilerOptions": {
-    "paths": {
-    }
-  },
-  "exclude": ["node_modules"]
+	"compilerOptions": {
+		"paths": {}
+	},
+	"exclude": ["node_modules"]
 }

@@ -10,12 +10,10 @@ export type ThemeName = z.infer<typeof ThemeNameSchema>;
 export type ThemeMode = z.infer<typeof ThemeModeSchema>;
 
 export const AppearanceSchema = z.object({
-    theme: ThemeNameSchema,
-    mode: ThemeModeSchema,
+	theme: ThemeNameSchema,
+	mode: ThemeModeSchema,
 });
 
-
-
-export const THEME_COOKIE = "kurrier.theme";     // "indigo" | "violet" | "teal"
-export const MODE_COOKIE  = "kurrier.mode";      // "light" | "dark" | "system"
+export const THEME_COOKIE = "kurrier.theme"; // "indigo" | "violet" | "teal"
+export const MODE_COOKIE = "kurrier.mode"; // "light" | "dark" | "system"
 export const RESOLVED_COOKIE = "kurrier.resolved"; // "light" | "dark"

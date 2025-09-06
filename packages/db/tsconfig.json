@@ -1,11 +1,11 @@
 {
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "paths": {
-      "@schema": ["../../packages/schema/src/index.ts"],
-      "@schema/*": ["../../packages/schema/src/*"],
-    }
-  },
-  "exclude": ["node_modules"]
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"paths": {
+			"@schema": ["../../packages/schema/src/index.ts"],
+			"@schema/*": ["../../packages/schema/src/*"]
+		}
+	},
+	"exclude": ["node_modules"]
 }

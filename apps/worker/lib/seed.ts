@@ -2,10 +2,6 @@
 //
 // console.log("db", db)
 
-const seed = async () => {
+const seed = async () => {};
 
-
-
-};
-
-export default seed
+export default seed;

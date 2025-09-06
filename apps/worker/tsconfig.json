@@ -1,21 +1,19 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "NodeNext",
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "outDir": "./dist",
-    "paths": {
-      "@worker/*": ["./*"],
-      "@db": ["../../packages/db/src/index.ts"],
-      "@db/*": ["../../packages/db/src/*"],
-    }
-  },
-  "exclude": ["node_modules"]
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "NodeNext",
+		"strict": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"types": ["node"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
+		"outDir": "./dist",
+		"paths": {
+			"@worker/*": ["./*"],
+			"@db": ["../../packages/db/src/index.ts"],
+			"@db/*": ["../../packages/db/src/*"]
+		}
+	},
+	"exclude": ["node_modules"]
 }
