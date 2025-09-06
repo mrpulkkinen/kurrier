@@ -13,9 +13,7 @@ export default async function DashboardLayout({
 	children: React.ReactNode;
 	breadcrumb: React.ReactNode;
 }) {
-
-
-    return (
+	return (
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>

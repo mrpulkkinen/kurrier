@@ -1,5 +1,5 @@
 {
-  "id": "fa5be8bc-83a4-4e5e-9227-ac00b5d81774",
+  "id": "a787a67d-18e8-456a-a87c-4e332c39b52a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -51,6 +51,224 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.provider_secrets": {
+      "name": "provider_secrets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "secret_id": {
+          "name": "secret_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key_name": {
+          "name": "key_name",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "provider_secrets_provider_id_providers_id_fk": {
+          "name": "provider_secrets_provider_id_providers_id_fk",
+          "tableFrom": "provider_secrets",
+          "tableTo": "providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "provider_secrets_secret_id_secrets_meta_id_fk": {
+          "name": "provider_secrets_secret_id_secrets_meta_id_fk",
+          "tableFrom": "provider_secrets",
+          "tableTo": "secrets_meta",
+          "columnsFrom": [
+            "secret_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "provsec_select_own": {
+          "name": "provsec_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n        exists (\n          select 1\n          from \"providers\" p\n          where p.id = \"provider_secrets\".\"provider_id\"\n            and p.owner_id = (select auth.uid())\n        )\n      "
+        },
+        "provsec_insert_own": {
+          "name": "provsec_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n        exists (\n          select 1\n          from \"providers\" p\n          where p.id = \"provider_secrets\".\"provider_id\"\n            and p.owner_id = (select auth.uid())\n        )\n        and exists (\n          select 1\n          from \"secrets_meta\" s\n          where s.id = \"provider_secrets\".\"secret_id\"\n            and s.owner_id = (select auth.uid())\n        )\n      "
+        },
+        "provsec_update_own": {
+          "name": "provsec_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n        exists (\n          select 1\n          from \"providers\" p\n          where p.id = \"provider_secrets\".\"provider_id\"\n            and p.owner_id = (select auth.uid())\n        )\n      ",
+          "withCheck": "\n        exists (\n          select 1\n          from \"providers\" p\n          where p.id = \"provider_secrets\".\"provider_id\"\n            and p.owner_id = (select auth.uid())\n        )\n        and exists (\n          select 1\n          from \"secrets_meta\" s\n          where s.id = \"provider_secrets\".\"secret_id\"\n            and s.owner_id = (select auth.uid())\n        )\n      "
+        },
+        "provsec_delete_own": {
+          "name": "provsec_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n        exists (\n          select 1\n          from \"providers\" p\n          where p.id = \"provider_secrets\".\"provider_id\"\n            and p.owner_id = (select auth.uid())\n        )\n      "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.providers": {
+      "name": "providers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "auth.uid()"
+        },
+        "type": {
+          "name": "type",
+          "type": "provider_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "providers_owner_id_users_id_fk": {
+          "name": "providers_owner_id_users_id_fk",
+          "tableFrom": "providers",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "providers_select_own": {
+          "name": "providers_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"providers\".\"owner_id\" = (select auth.uid())"
+        },
+        "providers_insert_own": {
+          "name": "providers_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"providers\".\"owner_id\" = (select auth.uid())"
+        },
+        "providers_update_own": {
+          "name": "providers_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"providers\".\"owner_id\" = (select auth.uid())",
+          "withCheck": "\"providers\".\"owner_id\" = (select auth.uid())"
+        },
+        "providers_delete_own": {
+          "name": "providers_delete_own",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"providers\".\"owner_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
     },
     "public.secrets_meta": {
       "name": "secrets_meta",
@@ -151,7 +369,19 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.provider_kind": {
+      "name": "provider_kind",
+      "schema": "public",
+      "values": [
+        "smtp",
+        "ses",
+        "mailgun",
+        "postmark",
+        "sendgrid"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

@@ -13,7 +13,7 @@ export async function updateSession(request: NextRequest) {
 	} = getEnv();
 
 	const supabase = createServerClient(
-        SUPABASE_DOMAIN,
+		SUPABASE_DOMAIN,
 		SUPABASE_SERVICE_ROLE_KEY,
 		{
 			cookies: {

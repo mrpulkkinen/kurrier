@@ -64,11 +64,11 @@ export const isSignedIn = async () => {
 };
 
 export const currentSession = async () => {
-    const client = await createClient();
-    const {
-        data: { session },
-    } = await client.auth.getSession();
-    return session;
+	const client = await createClient();
+	const {
+		data: { session },
+	} = await client.auth.getSession();
+	return session;
 };
 
 export const signOut = async (redirectUrl?: string) => {

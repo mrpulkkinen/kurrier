@@ -10,7 +10,12 @@
     ],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@worker/*": ["./*"],
+      "@db": ["../../packages/db/src/index.ts"],
+      "@db/*": ["../../packages/db/src/*"],
+    }
   },
   "exclude": ["node_modules"]
 }
