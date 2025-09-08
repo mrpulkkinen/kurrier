@@ -1,3 +1,4 @@
+"use client";
 import { SMTP_SPEC } from "@schema";
 import {
 	Card,

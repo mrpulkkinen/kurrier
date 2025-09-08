@@ -1,12 +1,14 @@
-"use client";
-
 import * as React from "react";
 import { Container } from "@/components/common/containers";
 import { PROVIDERS } from "@schema";
-import ProviderCard from "@/components/dashboard/providers/provider-card";
 import SMTPCard from "@/components/dashboard/providers/smtp-card";
+import {syncProviders} from "@/lib/actions/dashboard";
+import ProviderCardShell from "@/components/dashboard/providers/provider-card-shell";
 
-export default function ProvidersPage() {
+export default async function ProvidersPage() {
+    const userProviders = await syncProviders()
+
+
 	return (
 		<Container variant="wide">
 			<div className="my-8 space-y-6">
@@ -22,7 +24,7 @@ export default function ProvidersPage() {
 
 				<div className="grid gap-6 lg:grid-cols-2">
 					{PROVIDERS.map((p) => (
-						<ProviderCard key={p.key} spec={p} />
+                        <ProviderCardShell key={p.key} spec={p} userProviders={userProviders} />
 					))}
 				</div>
 				<div className="grid gap-6">

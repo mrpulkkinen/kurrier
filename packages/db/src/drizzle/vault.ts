@@ -2,16 +2,18 @@
 
 import { eq, sql } from "drizzle-orm";
 import type { PgTransaction } from "drizzle-orm/pg-core";
-import { secretsMeta } from "./schema";
 import { createDrizzleSupabaseClient } from "./drizzle-client";
+import {secretsMeta} from "./schema";
+import {DecryptedEntity} from "./drizzle-types";
+import {AuthSession} from "@supabase/supabase-js";
 
 async function vaultCreateSecret(
 	tx: PgTransaction<any, any, any>,
-	opts: { name: string; secret: string; description?: string | null },
+	opts: { name: string; secret: string; },
 ) {
-	const { name, secret, description = null } = opts;
+	const { name, secret } = opts;
 	const rows = await tx.execute(
-		sql`select vault.create_secret(${name}, ${secret}, ${description}) as id`,
+		sql`select vault.create_secret(${secret}, ${name}) as id`,
 	);
 
 	const id = (rows as any)[0]?.id as string | undefined;
@@ -31,20 +33,36 @@ async function vaultDeleteSecret(tx: PgTransaction<any, any, any>, id: string) {
 	await tx.execute(sql`select vault.delete_secret(${id})`);
 }
 
-async function vaultGetSecret(tx: PgTransaction<any, any, any>, id: string) {
-	const rows = await tx.execute(sql`select vault.get_secret(${id}) as value`);
-	const value = (rows as any)[0]?.value as string | null | undefined;
-	return value ?? null;
+// async function vaultGetSecret(tx: PgTransaction<any, any, any>, id: string) {
+// 	// const rows = await tx.execute(sql`select vault.get_secret(${id}) as value`);
+// 	const rows = await tx.execute(sql`select vault.decrypted_secrets(${id}) as value`);
+//     console.log("rows", rows)
+// 	const value = (rows as any)[0]?.value as string | null | undefined;
+// 	return value ?? null;
+// }
+
+async function vaultGetSecret(
+    tx: PgTransaction<any, any, any>,
+    id: string
+): Promise<DecryptedEntity | null> {
+    const [row]: [DecryptedEntity] = await tx.execute(
+        sql`select id, name, description, decrypted_secret
+        from vault.decrypted_secrets
+        where id = ${id}
+        limit 1`
+    );
+
+    return row ?? null;
 }
 
-export async function listSecrets(session: { access_token?: string } | null) {
+export async function listSecrets(session: AuthSession) {
 	const db = await createDrizzleSupabaseClient(session);
 	return db.rls((tx) => tx.select().from(secretsMeta));
 }
 
 export async function createSecret(
-	session: { access_token?: string } | null,
-	input: { name: string; value: string; description?: string | null },
+	session: AuthSession,
+	input: { name: string; value: string;},
 ) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
@@ -53,7 +71,6 @@ export async function createSecret(
 		vaultCreateSecret(tx, {
 			name: input.name,
 			secret: input.value,
-			description: input.description ?? null,
 		}),
 	);
 
@@ -62,7 +79,6 @@ export async function createSecret(
 			.insert(secretsMeta)
 			.values({
 				name: input.name,
-				description: input.description ?? null,
 				vaultSecret: vaultId,
 				// If your column has default auth.uid(), you do NOT need to set owner_id explicitly.
 				// owner_id will be checked by your RLS policy (withCheck owner_id = auth.uid()).
@@ -74,7 +90,7 @@ export async function createSecret(
 }
 
 export async function getSecret(
-	session: { access_token?: string } | null,
+	session: AuthSession,
 	id: string,
 ) {
 	const db = await createDrizzleSupabaseClient(session);
@@ -86,17 +102,17 @@ export async function getSecret(
 
 	if (!meta) throw new Error("Not found or not allowed");
 
-	const value = await admin.transaction((tx) =>
+	const vault = await admin.transaction((tx) =>
 		vaultGetSecret(tx, meta.vaultSecret),
 	);
 
-	return { ...meta, value };
+	return { metaSecret: meta, vault };
 }
 
 export async function updateSecret(
-	session: { access_token?: string } | null,
+	session: AuthSession,
 	id: string,
-	input: { value?: string; name?: string; description?: string | null },
+	input: { value?: string; name?: string;},
 ) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
@@ -112,15 +128,12 @@ export async function updateSecret(
 		);
 	}
 
-	if (input.name !== undefined || input.description !== undefined) {
+	if (input.name !== undefined) {
 		const rows = await rls((tx) =>
 			tx
 				.update(secretsMeta)
 				.set({
 					...(input.name !== undefined ? { name: input.name } : {}),
-					...(input.description !== undefined
-						? { description: input.description }
-						: {}),
 				})
 				.where(eq(secretsMeta.id, id))
 				.returning(),
@@ -132,7 +145,7 @@ export async function updateSecret(
 }
 
 export async function deleteSecret(
-	session: { access_token?: string } | null,
+	session: AuthSession,
 	id: string,
 ) {
 	const db = await createDrizzleSupabaseClient(session);

@@ -4,6 +4,7 @@ import { FormState } from "@schema";
 import { formDataToJson } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import {AuthSession} from "@supabase/supabase-js";
 
 export async function login(
 	_prev: FormState,
@@ -68,7 +69,7 @@ export const currentSession = async () => {
 	const {
 		data: { session },
 	} = await client.auth.getSession();
-	return session;
+	return session as AuthSession;
 };
 
 export const signOut = async (redirectUrl?: string) => {

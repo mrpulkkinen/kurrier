@@ -1,8 +1,8 @@
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { jwtDecode, JwtPayload } from "jwt-decode";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import {db, db_rls} from "./init-db";
+import {AuthSession} from "@supabase/supabase-js";
 
 export function decode(accessToken: string) {
 	try {
@@ -54,15 +54,7 @@ export function createDrizzle<Database extends PgDatabase<any, any, any>>(
 	};
 }
 
-const admin = drizzle({
-	client: postgres(process.env.DATABASE_URL!, { prepare: false }),
-});
 
-// Protected by RLS
-const client = drizzle({
-	client: postgres(process.env.DATABASE_RLS_URL!, { prepare: false }),
-});
-
-export async function createDrizzleSupabaseClient(session) {
-	return createDrizzle(decode(session?.access_token ?? ""), { admin, client });
+export async function createDrizzleSupabaseClient(session: AuthSession) {
+	return createDrizzle(decode(session?.access_token ?? ""), { admin: db, client: db_rls });
 }

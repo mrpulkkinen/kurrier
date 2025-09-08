@@ -38,53 +38,48 @@ ALTER TABLE "provider_secrets" ADD CONSTRAINT "provider_secrets_provider_id_prov
 ALTER TABLE "provider_secrets" ADD CONSTRAINT "provider_secrets_secret_id_secrets_meta_id_fk" FOREIGN KEY ("secret_id") REFERENCES "public"."secrets_meta"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "providers" ADD CONSTRAINT "providers_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "secrets_meta" ADD CONSTRAINT "secrets_meta_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "uniq_provider_key" ON "provider_secrets" USING btree ("provider_id","key_name");--> statement-breakpoint
+CREATE UNIQUE INDEX "uniq_provider_per_user" ON "providers" USING btree ("owner_id","type");--> statement-breakpoint
 CREATE POLICY "provsec_select_own" ON "provider_secrets" AS PERMISSIVE FOR SELECT TO "authenticated" USING (
         exists (
-          select 1
-          from "providers" p
+          select 1 from "providers" p
           where p.id = "provider_secrets"."provider_id"
             and p.owner_id = (select auth.uid())
         )
       );--> statement-breakpoint
 CREATE POLICY "provsec_insert_own" ON "provider_secrets" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (
         exists (
-          select 1
-          from "providers" p
+          select 1 from "providers" p
           where p.id = "provider_secrets"."provider_id"
             and p.owner_id = (select auth.uid())
         )
         and exists (
-          select 1
-          from "secrets_meta" s
+          select 1 from "secrets_meta" s
           where s.id = "provider_secrets"."secret_id"
             and s.owner_id = (select auth.uid())
         )
       );--> statement-breakpoint
 CREATE POLICY "provsec_update_own" ON "provider_secrets" AS PERMISSIVE FOR UPDATE TO "authenticated" USING (
         exists (
-          select 1
-          from "providers" p
+          select 1 from "providers" p
           where p.id = "provider_secrets"."provider_id"
             and p.owner_id = (select auth.uid())
         )
       ) WITH CHECK (
         exists (
-          select 1
-          from "providers" p
+          select 1 from "providers" p
           where p.id = "provider_secrets"."provider_id"
             and p.owner_id = (select auth.uid())
         )
         and exists (
-          select 1
-          from "secrets_meta" s
+          select 1 from "secrets_meta" s
           where s.id = "provider_secrets"."secret_id"
             and s.owner_id = (select auth.uid())
         )
       );--> statement-breakpoint
 CREATE POLICY "provsec_delete_own" ON "provider_secrets" AS PERMISSIVE FOR DELETE TO "authenticated" USING (
         exists (
-          select 1
-          from "providers" p
+          select 1 from "providers" p
           where p.id = "provider_secrets"."provider_id"
             and p.owner_id = (select auth.uid())
         )

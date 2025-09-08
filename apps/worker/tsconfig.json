@@ -12,7 +12,9 @@
 		"paths": {
 			"@worker/*": ["./*"],
 			"@db": ["../../packages/db/src/index.ts"],
-			"@db/*": ["../../packages/db/src/*"]
+			"@db/*": ["../../packages/db/src/*"],
+            "@schema": ["../../packages/schema/src/index.ts"],
+            "@schema/*": ["../../packages/schema/src/*"]
 		}
 	},
 	"exclude": ["node_modules"]

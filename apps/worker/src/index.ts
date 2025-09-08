@@ -1,7 +1,5 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import seed from "@worker/lib/seed.js";
-await seed();
 
 const app = new Hono();
 

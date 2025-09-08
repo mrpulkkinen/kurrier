@@ -37,7 +37,7 @@ export const PROVIDERS: ProviderSpec[] = [
 			"SES_ACCESS_KEY_ID",
 			"SES_SECRET_ACCESS_KEY",
 			"SES_REGION",
-			"SES_FROM_EMAIL",
+			// "SES_FROM_EMAIL",
 		],
 	},
 	{
