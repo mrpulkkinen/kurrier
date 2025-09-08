@@ -2,12 +2,11 @@ import * as React from "react";
 import { Container } from "@/components/common/containers";
 import { PROVIDERS } from "@schema";
 import SMTPCard from "@/components/dashboard/providers/smtp-card";
-import {syncProviders} from "@/lib/actions/dashboard";
+import { syncProviders } from "@/lib/actions/dashboard";
 import ProviderCardShell from "@/components/dashboard/providers/provider-card-shell";
 
 export default async function ProvidersPage() {
-    const userProviders = await syncProviders()
-
+	const userProviders = await syncProviders();
 
 	return (
 		<Container variant="wide">
@@ -24,7 +23,11 @@ export default async function ProvidersPage() {
 
 				<div className="grid gap-6 lg:grid-cols-2">
 					{PROVIDERS.map((p) => (
-                        <ProviderCardShell key={p.key} spec={p} userProviders={userProviders} />
+						<ProviderCardShell
+							key={p.key}
+							spec={p}
+							userProviders={userProviders}
+						/>
 					))}
 				</div>
 				<div className="grid gap-6">

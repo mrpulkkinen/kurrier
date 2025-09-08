@@ -3,13 +3,13 @@
 import { eq, sql } from "drizzle-orm";
 import type { PgTransaction } from "drizzle-orm/pg-core";
 import { createDrizzleSupabaseClient } from "./drizzle-client";
-import {secretsMeta} from "./schema";
-import {DecryptedEntity} from "./drizzle-types";
-import {AuthSession} from "@supabase/supabase-js";
+import { secretsMeta } from "./schema";
+import { DecryptedEntity } from "./drizzle-types";
+import { AuthSession } from "@supabase/supabase-js";
 
 async function vaultCreateSecret(
 	tx: PgTransaction<any, any, any>,
-	opts: { name: string; secret: string; },
+	opts: { name: string; secret: string },
 ) {
 	const { name, secret } = opts;
 	const rows = await tx.execute(
@@ -42,17 +42,17 @@ async function vaultDeleteSecret(tx: PgTransaction<any, any, any>, id: string) {
 // }
 
 async function vaultGetSecret(
-    tx: PgTransaction<any, any, any>,
-    id: string
+	tx: PgTransaction<any, any, any>,
+	id: string,
 ): Promise<DecryptedEntity | null> {
-    const [row]: [DecryptedEntity] = await tx.execute(
-        sql`select id, name, description, decrypted_secret
+	const [row]: [DecryptedEntity] = await tx.execute(
+		sql`select id, name, description, decrypted_secret
         from vault.decrypted_secrets
         where id = ${id}
-        limit 1`
-    );
+        limit 1`,
+	);
 
-    return row ?? null;
+	return row ?? null;
 }
 
 export async function listSecrets(session: AuthSession) {
@@ -62,7 +62,7 @@ export async function listSecrets(session: AuthSession) {
 
 export async function createSecret(
 	session: AuthSession,
-	input: { name: string; value: string;},
+	input: { name: string; value: string },
 ) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
@@ -89,10 +89,7 @@ export async function createSecret(
 	return rows[0]!;
 }
 
-export async function getSecret(
-	session: AuthSession,
-	id: string,
-) {
+export async function getSecret(session: AuthSession, id: string) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
 
@@ -112,7 +109,7 @@ export async function getSecret(
 export async function updateSecret(
 	session: AuthSession,
 	id: string,
-	input: { value?: string; name?: string;},
+	input: { value?: string; name?: string },
 ) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
@@ -144,10 +141,7 @@ export async function updateSecret(
 	return meta;
 }
 
-export async function deleteSecret(
-	session: AuthSession,
-	id: string,
-) {
+export async function deleteSecret(session: AuthSession, id: string) {
 	const db = await createDrizzleSupabaseClient(session);
 	const { admin, rls } = db;
 

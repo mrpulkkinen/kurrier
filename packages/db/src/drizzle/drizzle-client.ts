@@ -1,8 +1,8 @@
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { jwtDecode, JwtPayload } from "jwt-decode";
-import {db, db_rls} from "./init-db";
-import {AuthSession} from "@supabase/supabase-js";
+import { db, db_rls } from "./init-db";
+import { AuthSession } from "@supabase/supabase-js";
 
 export function decode(accessToken: string) {
 	try {
@@ -54,7 +54,9 @@ export function createDrizzle<Database extends PgDatabase<any, any, any>>(
 	};
 }
 
-
 export async function createDrizzleSupabaseClient(session: AuthSession) {
-	return createDrizzle(decode(session?.access_token ?? ""), { admin: db, client: db_rls });
+	return createDrizzle(decode(session?.access_token ?? ""), {
+		admin: db,
+		client: db_rls,
+	});
 }
