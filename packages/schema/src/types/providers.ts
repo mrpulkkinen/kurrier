@@ -67,9 +67,9 @@ export const SMTP_SPEC = {
 	docsUrl: "https://www.rfc-editor.org/rfc/rfc5321",
 	requiredEnv: [
 		"SMTP_HOST",
-		"SMTP_PORT",
-		"SMTP_USERNAME",
-		"SMTP_PASSWORD",
+		// "SMTP_PORT",
+		// "SMTP_USERNAME",
+		// "SMTP_PASSWORD",
 	] as const,
 	optionalEnv: [
 		"SMTP_SECURE", // true => implicit TLS(465); false/empty => STARTTLS (587)
@@ -86,62 +86,3 @@ export const SMTP_SPEC = {
 		"Use SMTP_SECURE=true for implicit TLS (port 465); leave empty/false for STARTTLS (587). " +
 		"IMAP vars are optional and only needed if you plan to receive/sync messages.",
 };
-
-// export type Providers = "smtp" | "ses" | "mailgun" | "postmark" | "sendgrid";
-//
-// interface BaseProviderConfig {
-//     provider: Providers;
-// }
-//
-// export const ProviderLabels: Record<Providers, string> = {
-//     smtp: "Custom SMTP",
-//     ses: "Amazon SES",
-//     mailgun: "Mailgun",
-//     postmark: "Postmark",
-//     sendgrid: "SendGrid",
-// };
-//
-// export interface SmtpProviderConfig extends BaseProviderConfig {
-//     provider: "smtp";
-//     SMTP_HOST: string;
-//     SMTP_PORT: number;
-//     SMTP_USER: string;
-//     SMTP_PASS: string;
-//     SMTP_FROM_EMAIL: string;
-// }
-//
-// // Amazon SES
-// export interface SesProviderConfig extends BaseProviderConfig {
-//     provider: "ses";
-//     SES_ACCESS_KEY_ID: string;
-//     SES_SECRET_ACCESS_KEY: string;
-//     // SES_REGION: string;
-//     // SES_FROM_EMAIL: string;
-// }
-//
-// // Mailgun
-// export interface MailgunProviderConfig extends BaseProviderConfig {
-//     provider: "mailgun";
-//     MAILGUN_API_KEY: string;
-// }
-//
-// // Postmark
-// export interface PostmarkProviderConfig extends BaseProviderConfig {
-//     provider: "postmark";
-//     POSTMARK_API_TOKEN: string;
-// }
-//
-// // SendGrid
-// export interface SendGridProviderConfig extends BaseProviderConfig {
-//     provider: "sendgrid";
-//     SENDGRID_API_KEY: string;
-//     SENDGRID_FROM_EMAIL: string;
-// }
-//
-// // Discriminated union of all configs
-// export type ProviderConfig =
-//     | SmtpProviderConfig
-//     | SesProviderConfig
-//     | MailgunProviderConfig
-//     | PostmarkProviderConfig
-//     | SendGridProviderConfig;

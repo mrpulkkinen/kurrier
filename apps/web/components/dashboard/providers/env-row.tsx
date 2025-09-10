@@ -7,13 +7,14 @@ import { ProviderSecretRow } from "@/lib/actions/dashboard";
 export default function EnvRow({
 	name,
 	rowName,
-	present,
-	secret,
+    defaultValue,
+    required = true,
 }: {
 	name: string;
 	rowName: string;
-	present: boolean;
-	secret: ProviderSecretRow;
+	// secret: ProviderSecretRow | null;
+    defaultValue: string | null | undefined;
+    required?: boolean;
 }) {
 	const [copied, setCopied] = React.useState(false);
 
@@ -58,10 +59,11 @@ export default function EnvRow({
 
 			<div>
 				<Input
-					defaultValue={secret?.vault?.decrypted_secret || ""}
+					// defaultValue={secret?.vault?.decrypted_secret || ""}
+					defaultValue={defaultValue || ""}
 					onFocus={() => setHide(false)}
 					onBlur={() => setHide(true)}
-					required={true}
+					required={required}
 					name={name}
 					type={!hide ? "text" : "password"}
 					className="h-10 w-full text-base"

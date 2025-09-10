@@ -22,6 +22,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import type { BaseFormProps, FormState, SelectOption } from "@schema";
+import {Loader2Icon} from "lucide-react";
 
 export type ReusableFormProps = BaseFormProps & {
 	submitButtonProps?: SubmitButtonProps;
@@ -118,6 +119,7 @@ export function ReusableForm({
 			className={`${submitButtonProps?.fullWidth ? "w-full" : ""} ${submitButtonProps?.className ?? ""}`}
 			{...(submitButtonProps?.buttonProps || {})}
 		>
+            {isPending && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
 			<div className="flex justify-center gap-2.5 items-center">
 				{submitButtonProps?.submitLabel ?? "Submit"}
 			</div>
@@ -232,7 +234,7 @@ export function ReusableForm({
 			)}
 
 			{message && (
-				<div className="flex justify-center mt-3 -mb-4 bg-green-200 p-2 rounded text-center">
+				<div className="flex justify-center mt-3 -mb-4 bg-green-200 p-2 rounded text-center text-green-600">
 					<span className="text-sm">{message}</span>
 				</div>
 			)}

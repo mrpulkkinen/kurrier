@@ -51,7 +51,6 @@ export default function ProviderCard({
 	userProvider: SyncProvidersRow;
 	secrets: ProviderSecretsResult;
 }) {
-	console.log("secrets", secrets);
 
 	const presentKeys = new Set(
 		secrets
@@ -158,8 +157,7 @@ export default function ProviderCard({
 								key={row.name}
 								name={`keys.${row.name}`}
 								rowName={row.name}
-								present={row.present}
-								secret={row.secret}
+                                defaultValue={row.secret?.vault?.decrypted_secret}
 							/>
 						))}
 					</div>
