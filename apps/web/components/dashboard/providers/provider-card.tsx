@@ -51,7 +51,6 @@ export default function ProviderCard({
 	userProvider: SyncProvidersRow;
 	secrets: ProviderSecretsResult;
 }) {
-
 	const presentKeys = new Set(
 		secrets
 			// .filter(s => !!s.vault?.decrypted_secret)      // <- drop this line if “exists at all” is enough
@@ -157,7 +156,7 @@ export default function ProviderCard({
 								key={row.name}
 								name={`keys.${row.name}`}
 								rowName={row.name}
-                                defaultValue={row.secret?.vault?.decrypted_secret}
+								defaultValue={row.secret?.vault?.decrypted_secret}
 							/>
 						))}
 					</div>

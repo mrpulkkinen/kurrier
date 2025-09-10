@@ -7,14 +7,14 @@ import { ProviderSecretRow } from "@/lib/actions/dashboard";
 export default function EnvRow({
 	name,
 	rowName,
-    defaultValue,
-    required = true,
+	defaultValue,
+	required = true,
 }: {
 	name: string;
 	rowName: string;
 	// secret: ProviderSecretRow | null;
-    defaultValue: string | null | undefined;
-    required?: boolean;
+	defaultValue: string | null | undefined;
+	required?: boolean;
 }) {
 	const [copied, setCopied] = React.useState(false);
 

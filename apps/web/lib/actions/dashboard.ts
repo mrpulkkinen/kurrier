@@ -1,13 +1,15 @@
 "use server";
 
 import {
-    createDrizzleSupabaseClient,
-    createSecret,
-    getSecret,
-    providers,
-    providerSecrets,
-    secretsMeta, smtpAccounts, smtpAccountSecrets,
-    updateSecret,
+	createDrizzleSupabaseClient,
+	createSecret,
+	getSecret,
+	providers,
+	providerSecrets,
+	secretsMeta,
+	smtpAccounts,
+	smtpAccountSecrets,
+	updateSecret,
 } from "@db";
 import { FormState, PROVIDERS } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
@@ -35,7 +37,7 @@ export const syncProviders = async () => {
 
 export async function getProviderSecrets(providerId: string) {
 	const session = await currentSession();
-    const rls = await rlsClient();
+	const rls = await rlsClient();
 	const rows = await rls((tx) =>
 		tx
 			.select({
@@ -119,68 +121,63 @@ export async function saveProviderEnv(
 	}
 }
 
-
 export async function getAccountsWithSecrets() {
-    const rls = await rlsClient();
-    const accountsWithSecrets = await rls((tx) =>
-        tx
-            .select()
-            .from(smtpAccounts)
-            .leftJoin(
-                smtpAccountSecrets,
-                eq(smtpAccountSecrets.accountId, smtpAccounts.id),
-            )
-    );
+	const rls = await rlsClient();
+	const accountsWithSecrets = await rls((tx) =>
+		tx
+			.select()
+			.from(smtpAccounts)
+			.leftJoin(
+				smtpAccountSecrets,
+				eq(smtpAccountSecrets.accountId, smtpAccounts.id),
+			),
+	);
 
-    return accountsWithSecrets
+	return accountsWithSecrets;
 }
 
 export type AccountsWithSecretsResult = Awaited<
-    ReturnType<typeof getAccountsWithSecrets>
+	ReturnType<typeof getAccountsWithSecrets>
 >;
 
 export type AccountsWithSecretsRow = AccountsWithSecretsResult[number];
 
 export async function createSmtpAccount(
-    _prev: FormState,
-    formData: FormData,
+	_prev: FormState,
+	formData: FormData,
 ): Promise<FormState> {
+	console.log("formData", formData);
 
-    console.log("formData", formData)
-
-    // const rls = await rlsClient();
-    const data = decode(formData);
-    console.log("stuff", data)
-    const vals = {
-        label: data.label || "My SMTP Account",
-        host: data.SMTP_HOST,
-        port: Number(data.SMTP_PORT) || 587,
-        secure: data.secure === "true" || false,
-        // user: data.user,
-    }
-    // await rls((tx) =>{
-    //     return tx.insert(smtpAccounts).values({})
-    // })
-    // const newSmtpAccount = await
-    // wait two seconds
-    // await new Promise((resolve) => setTimeout(resolve, 10000));
-    return {
-        success: false,
-        message: "Not implemented yet",
-    };
-
+	// const rls = await rlsClient();
+	const data = decode(formData);
+	console.log("stuff", data);
+	const vals = {
+		label: data.label || "My SMTP Account",
+		host: data.SMTP_HOST,
+		port: Number(data.SMTP_PORT) || 587,
+		secure: data.secure === "true" || false,
+		// user: data.user,
+	};
+	// await rls((tx) =>{
+	//     return tx.insert(smtpAccounts).values({})
+	// })
+	// const newSmtpAccount = await
+	// wait two seconds
+	// await new Promise((resolve) => setTimeout(resolve, 10000));
+	return {
+		success: false,
+		message: "Not implemented yet",
+	};
 }
 
-
-
 export const rlsClient = async () => {
-    const session = await currentSession()
-    const {rls} = await createDrizzleSupabaseClient(session)
-    return rls
+	const session = await currentSession();
+	const { rls } = await createDrizzleSupabaseClient(session);
+	return rls;
 };
 
 export const adminClient = async () => {
-    const session = await currentSession()
-    const {admin} = await createDrizzleSupabaseClient(session)
-    return admin
+	const session = await currentSession();
+	const { admin } = await createDrizzleSupabaseClient(session);
+	return admin;
 };

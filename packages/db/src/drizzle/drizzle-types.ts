@@ -1,4 +1,4 @@
-import {emailsTable, providers, smtpAccounts} from "./schema";
+import { emailsTable, providers, smtpAccounts } from "./schema";
 import { decryptedSecrets } from "./supabase-schema";
 
 export type EmailEntity = typeof emailsTable.$inferSelect;

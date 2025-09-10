@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 ::-webkit-scrollbar {
-    display: none;
+	display: none;
 }
 
 :root {
