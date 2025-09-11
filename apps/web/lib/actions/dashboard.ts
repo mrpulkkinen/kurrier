@@ -121,7 +121,7 @@ export async function saveProviderEnv(
 	}
 }
 
-export async function getAccountsWithSecrets() {
+export async function getSmtpAccountsWithSecrets() {
 	const rls = await rlsClient();
 	const accountsWithSecrets = await rls((tx) =>
 		tx
@@ -133,41 +133,136 @@ export async function getAccountsWithSecrets() {
 			),
 	);
 
-	return accountsWithSecrets;
+    const session = await currentSession();
+    const decryptedSecrets = await Promise.all(
+        accountsWithSecrets.map(async (account) => {
+            const secret = await getSecret(session, String(account?.smtp_account_secrets?.secretId));
+            return {
+                ...account,
+                decrypted: secret,
+            };
+        })
+    );
+
+	return decryptedSecrets;
 }
 
-export type AccountsWithSecretsResult = Awaited<
-	ReturnType<typeof getAccountsWithSecrets>
+export type SmtpAccountsWithSecretsResult = Awaited<
+	ReturnType<typeof getSmtpAccountsWithSecrets>
 >;
 
-export type AccountsWithSecretsRow = AccountsWithSecretsResult[number];
+export type SmtpAccountsWithSecretsRow = SmtpAccountsWithSecretsResult[number];
 
 export async function createSmtpAccount(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
-	console.log("formData", formData);
 
-	// const rls = await rlsClient();
-	const data = decode(formData);
-	console.log("stuff", data);
-	const vals = {
-		label: data.label || "My SMTP Account",
-		host: data.SMTP_HOST,
-		port: Number(data.SMTP_PORT) || 587,
-		secure: data.secure === "true" || false,
-		// user: data.user,
-	};
-	// await rls((tx) =>{
-	//     return tx.insert(smtpAccounts).values({})
-	// })
-	// const newSmtpAccount = await
-	// wait two seconds
-	// await new Promise((resolve) => setTimeout(resolve, 10000));
-	return {
-		success: false,
-		message: "Not implemented yet",
-	};
+    try {
+        const data = decode(formData);
+        const cleanedRequired = Object.fromEntries(
+            Object.entries(data.required ?? {}).filter(([, v]) => v !== "" && v != null)
+        );
+        const cleanedOptional = Object.fromEntries(
+            Object.entries(data.optional ?? {}).filter(([, v]) => v !== "" && v != null)
+        );
+
+        const smtpConfig = {
+            ulid: data.ulid,
+            label: String(data.label || "My SMTP Account").trim(),
+            ...cleanedRequired,
+            ...cleanedOptional,
+        };
+
+        const session = await currentSession();
+        const secretMeta = await createSecret(session, {
+            name: String(data.ulid),
+            value: JSON.stringify(smtpConfig),
+        })
+
+        const rls = await rlsClient();
+        const [smtpAccount] = await rls((tx) =>
+            tx.insert(smtpAccounts).values({
+                label: smtpConfig.label
+            }).returning()
+        )
+
+        await rls((tx) =>
+            tx.insert(smtpAccountSecrets).values({
+                accountId: smtpAccount.id,
+                secretId: secretMeta.id,
+            }).returning()
+        )
+
+        revalidatePath("/dashboard/providers")
+
+        return {
+            success: true,
+            message: "Successfully created SMTP account",
+        };
+    } catch (e) {
+        return {
+            success: false,
+            error: "Error creating SMTP account",
+        }
+    }
+}
+
+export async function updateSmtpAccount(
+    _prev: FormState,
+    formData: FormData,
+): Promise<FormState> {
+
+    try {
+        const data = decode(formData);
+        const cleanedRequired = Object.fromEntries(
+            Object.entries(data.required ?? {}).filter(([, v]) => v !== "" && v != null)
+        );
+        const cleanedOptional = Object.fromEntries(
+            Object.entries(data.optional ?? {}).filter(([, v]) => v !== "" && v != null)
+        );
+
+        const smtpConfig = {
+            ulid: data.ulid,
+            label: String(data.label || "My SMTP Account").trim(),
+            ...cleanedRequired,
+            ...cleanedOptional,
+        };
+
+        const session = await currentSession();
+        await updateSecret(session, String(data.secretId), {
+            name: String(data.ulid),
+            value: JSON.stringify(smtpConfig),
+        })
+
+        const rls = await rlsClient();
+        await rls((tx) =>
+            tx.update(smtpAccounts).set({
+                label: smtpConfig.label
+            }).where(eq(smtpAccounts.id, String(data.accountId)))
+        )
+
+        revalidatePath("/dashboard/providers")
+
+        return {
+            success: true,
+            message: "Successfully created SMTP account",
+        };
+    } catch (e) {
+        return {
+            success: false,
+            error: "Error creating SMTP account",
+        }
+    }
+}
+
+
+export const deleteSmtpAccount = async (id: string) => {
+    const rls = await rlsClient();
+    await rls((tx) =>
+        tx.delete(smtpAccounts).where(eq(smtpAccounts.id, id))
+    );
+    revalidatePath("/dashboard/providers")
 }
 
 export const rlsClient = async () => {

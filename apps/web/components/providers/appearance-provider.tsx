@@ -16,6 +16,8 @@ import {
 	setResolvedServer,
 	setThemeServer,
 } from "@/lib/actions/appearance";
+// import {MantineProvider} from "@mantine/core";
+// import {createMantineTheme} from "@/lib/mantine-theme";
 
 type AppearanceCtx = {
 	theme: ThemeName;
@@ -130,7 +132,11 @@ export function AppearanceProvider({
 		[theme, mode, pending],
 	);
 
-	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+
+
+	return <Ctx.Provider value={value}>
+            {children}
+    </Ctx.Provider>;
 }
 
 export function useAppearance() {

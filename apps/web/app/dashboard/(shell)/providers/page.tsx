@@ -2,11 +2,12 @@ import * as React from "react";
 import { Container } from "@/components/common/containers";
 import { PROVIDERS } from "@schema";
 import SMTPCard from "@/components/dashboard/providers/smtp-card";
-import { syncProviders } from "@/lib/actions/dashboard";
+import {getSmtpAccountsWithSecrets, syncProviders} from "@/lib/actions/dashboard";
 import ProviderCardShell from "@/components/dashboard/providers/provider-card-shell";
 
 export default async function ProvidersPage() {
 	const userProviders = await syncProviders();
+    const accountsWithSecrets = await getSmtpAccountsWithSecrets();
 
 	return (
 		<Container variant="wide">
@@ -31,7 +32,7 @@ export default async function ProvidersPage() {
 					))}
 				</div>
 				<div className="grid gap-6">
-					<SMTPCard />
+					<SMTPCard accountsWithSecrets={accountsWithSecrets} />
 				</div>
 			</div>
 		</Container>

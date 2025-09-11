@@ -67,9 +67,9 @@ export const SMTP_SPEC = {
 	docsUrl: "https://www.rfc-editor.org/rfc/rfc5321",
 	requiredEnv: [
 		"SMTP_HOST",
-		// "SMTP_PORT",
-		// "SMTP_USERNAME",
-		// "SMTP_PASSWORD",
+		"SMTP_PORT",
+		"SMTP_USERNAME",
+		"SMTP_PASSWORD",
 	] as const,
 	optionalEnv: [
 		"SMTP_SECURE", // true => implicit TLS(465); false/empty => STARTTLS (587)

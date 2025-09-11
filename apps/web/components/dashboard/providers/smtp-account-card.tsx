@@ -13,6 +13,7 @@ import * as React from "react";
 import StatusBadge from "@/components/dashboard/providers/provider-status-badge";
 import EnvRow from "@/components/dashboard/providers/env-row";
 import { isPresent } from "@/components/dashboard/providers/provider-card";
+import {Input} from "@mantine/core";
 
 export default function SMTPAccountCard() {
 	const required = SMTP_SPEC.requiredEnv.map((n) => ({

@@ -228,10 +228,6 @@ export const smtpAccounts = pgTable(
 			.notNull()
 			.default(sql`auth.uid()`),
 		label: varchar("label", { length: 120 }).notNull(), // “Work SMTP”, “Personal”, etc.
-		host: varchar("host", { length: 255 }).notNull(),
-		port: integer("port").notNull(),
-		secure: boolean("secure").notNull().default(false), // implicit TLS (465) vs STARTTLS
-		fromEmail: varchar("from_email", { length: 255 }), // optional non-secret
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -275,7 +271,6 @@ export const smtpAccountSecrets = pgTable(
 		secretId: uuid("secret_id")
 			.references(() => secretsMeta.id, { onDelete: "cascade" })
 			.notNull(),
-		keyName: varchar("key_name", { length: 120 }).notNull(), // e.g. SMTP_USER, SMTP_PASS
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -284,8 +279,6 @@ export const smtpAccountSecrets = pgTable(
 			.notNull(),
 	},
 	(t) => [
-		uniqueIndex("uniq_smtp_secret_key").on(t.accountId, t.keyName),
-
 		// RLS via ownership of the parent account + ownership of the secret
 		pgPolicy("smtpsec_select_own", {
 			for: "select",

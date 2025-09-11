@@ -37,7 +37,6 @@ CREATE TABLE "smtp_account_secrets" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"account_id" uuid NOT NULL,
 	"secret_id" uuid NOT NULL,
-	"key_name" varchar(120) NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -47,10 +46,6 @@ CREATE TABLE "smtp_accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"owner_id" uuid DEFAULT auth.uid() NOT NULL,
 	"label" varchar(120) NOT NULL,
-	"host" varchar(255) NOT NULL,
-	"port" integer NOT NULL,
-	"secure" boolean DEFAULT false NOT NULL,
-	"from_email" varchar(255),
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -66,7 +61,6 @@ ALTER TABLE "smtp_account_secrets" ADD CONSTRAINT "smtp_account_secrets_secret_i
 ALTER TABLE "smtp_accounts" ADD CONSTRAINT "smtp_accounts_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_provider_key" ON "provider_secrets" USING btree ("provider_id","key_name");--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_provider_per_user" ON "providers" USING btree ("owner_id","type");--> statement-breakpoint
-CREATE UNIQUE INDEX "uniq_smtp_secret_key" ON "smtp_account_secrets" USING btree ("account_id","key_name");--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_smtp_label_per_user" ON "smtp_accounts" USING btree ("owner_id","label");--> statement-breakpoint
 CREATE POLICY "provsec_select_own" ON "provider_secrets" AS PERMISSIVE FOR SELECT TO "authenticated" USING (
         exists (
