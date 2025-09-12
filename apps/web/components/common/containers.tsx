@@ -1,63 +1,26 @@
-type ContainerVariant = "wide" | "medium" | "narrow";
+type ContainerVariant = "wide" | "medium" | "narrow" | "full";
 
 export function Container({
-	children,
-	variant = "medium",
-}: {
-	children: React.ReactNode;
-	variant?: ContainerVariant;
+                              children,
+                              variant = "medium",
+                              className = "",
+                          }: {
+    children: React.ReactNode;
+    variant?: ContainerVariant;
+    className?: string;
 }) {
-	const base = "mx-auto px-4 sm:px-6 lg:px-8";
+    const base = "w-full mx-auto px-4 sm:px-6 lg:px-8";
 
-	const variants: Record<ContainerVariant, string> = {
-		wide: "max-w-7xl", // stays wide always
-		medium: "max-w-3xl lg:max-w-5xl", // medium, grows wider on lg+
-		narrow: "max-w-xl lg:max-w-3xl", // narrow, grows on lg+
-	};
+    const variants: Record<ContainerVariant, string> = {
+        wide:   "min-w-full sm:min-w-2xl lg:min-w-5xl max-w-7xl",
+        medium: "min-w-full sm:min-w-xl lg:min-w-3xl max-w-3xl lg:max-w-5xl",
+        narrow: "min-w-full sm:min-w-md lg:min-w-xl max-w-xl lg:max-w-3xl",
+        full:   "min-w-full max-w-none",
+    };
 
-	return <div className={`${base} ${variants[variant]}`}>{children}</div>;
+    return (
+        <div className={`${base} ${variants[variant]} ${className}`}>
+            {children}
+        </div>
+    );
 }
-
-// export function ContainerOne({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-//             {children}
-//         </div>
-//     );
-// }
-//
-// export function ContainerTwo({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-//             {children}
-//         </div>
-//     );
-// }
-//
-// export function ContainerThree({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="container mx-auto sm:px-6 lg:px-8">
-//             {children}
-//         </div>
-//     );
-// }
-//
-//
-// export function ContainerFour({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-//             {children}
-//         </div>
-//     );
-// }
-//
-//
-// export function ContainerFive({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-//             <div className="mx-auto max-w-3xl">
-//                 {children}
-//             </div>
-//         </div>
-//     );
-// }
