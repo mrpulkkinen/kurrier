@@ -1,27 +1,40 @@
 "use client";
 import React from "react";
 import {
-    FetchDecryptedSecretsResultRow,
-    upsertSMTPAccount,
+	FetchDecryptedSecretsResultRow,
+	upsertSMTPAccount,
 } from "@/lib/actions/dashboard";
 import { SMTP_SPEC } from "@schema";
 import { ReusableForm } from "@/components/common/reusable-form";
 import { ulid } from "ulid";
 
 function NewSmtpAccountForm({
-    smtpSecret,
-    onCompleted
+	smtpSecret,
+	onCompleted,
 }: {
-    smtpSecret?: FetchDecryptedSecretsResultRow
-    onCompleted?: () => void
+	smtpSecret?: FetchDecryptedSecretsResultRow;
+	onCompleted?: () => void;
 }) {
-
-    const parsedVaultValues = smtpSecret?.vault?.decrypted_secret ? JSON.parse(smtpSecret?.vault?.decrypted_secret) : {};
+	const parsedVaultValues = smtpSecret?.vault?.decrypted_secret
+		? JSON.parse(smtpSecret?.vault?.decrypted_secret)
+		: {};
 
 	const fields = [
-		{ name: "ulid", wrapperClasses: "hidden", props: { hidden: true, defaultValue: ulid() } },
-		{ name: "secretId", wrapperClasses: "hidden", props: { hidden: true, defaultValue: smtpSecret?.linkRow?.secretId } },
-		{ name: "accountId", wrapperClasses: "hidden", props: { hidden: true, defaultValue: smtpSecret?.linkRow?.accountId } },
+		{
+			name: "ulid",
+			wrapperClasses: "hidden",
+			props: { hidden: true, defaultValue: ulid() },
+		},
+		{
+			name: "secretId",
+			wrapperClasses: "hidden",
+			props: { hidden: true, defaultValue: smtpSecret?.linkRow?.secretId },
+		},
+		{
+			name: "accountId",
+			wrapperClasses: "hidden",
+			props: { hidden: true, defaultValue: smtpSecret?.linkRow?.accountId },
+		},
 
 		{
 			name: "label",
@@ -35,7 +48,9 @@ function NewSmtpAccountForm({
 				autoComplete: "off",
 				required: true,
 				placeholder: "My SMTP Account",
-				defaultValue: parsedVaultValues ? (parsedVaultValues["label"] ?? "") : "",
+				defaultValue: parsedVaultValues
+					? (parsedVaultValues["label"] ?? "")
+					: "",
 			},
 		},
 
@@ -45,12 +60,14 @@ function NewSmtpAccountForm({
 				<code className="rounded bg-muted/50 px-2 py-1 text-xs">{rowKey}</code>
 			),
 			required: true,
-            wrapperClasses: "col-span-12 sm:col-span-6",
+			wrapperClasses: "col-span-12 sm:col-span-6",
 			props: {
 				autoComplete: "off",
 				required: true,
 				// type: /PASSWORD/.test(rowKey) ? "password" : "text",
-				defaultValue: parsedVaultValues ? (parsedVaultValues[rowKey] ?? "") : "",
+				defaultValue: parsedVaultValues
+					? (parsedVaultValues[rowKey] ?? "")
+					: "",
 			},
 		})),
 
@@ -65,7 +82,7 @@ function NewSmtpAccountForm({
 		},
 
 		...SMTP_SPEC.optionalEnv.map((rowKey: string) =>
-            rowKey === "SMTP_SECURE" || rowKey === "IMAP_SECURE"
+			rowKey === "SMTP_SECURE" || rowKey === "IMAP_SECURE"
 				? {
 						name: `optional.${rowKey}`,
 						label: (
@@ -102,7 +119,9 @@ function NewSmtpAccountForm({
 							autoComplete: "off",
 							required: false,
 							type: /PASSWORD/.test(rowKey) ? "password" : "text",
-							defaultValue: parsedVaultValues ? (parsedVaultValues[rowKey] ?? "") : "",
+							defaultValue: parsedVaultValues
+								? (parsedVaultValues[rowKey] ?? "")
+								: "",
 						},
 					},
 		),
@@ -110,8 +129,8 @@ function NewSmtpAccountForm({
 
 	return (
 		<ReusableForm
-            action={upsertSMTPAccount}
-            onSuccess={onCompleted ? onCompleted : undefined}
+			action={upsertSMTPAccount}
+			onSuccess={onCompleted ? onCompleted : undefined}
 			fields={fields}
 			{...(parsedVaultValues
 				? {

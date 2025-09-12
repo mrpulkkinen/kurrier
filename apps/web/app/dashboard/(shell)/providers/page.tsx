@@ -2,21 +2,18 @@ import * as React from "react";
 import { Container } from "@/components/common/containers";
 import { PROVIDERS } from "@schema";
 import SMTPCard from "@/components/dashboard/providers/smtp-card";
-import {
-    fetchDecryptedSecrets,
-    syncProviders,
-} from "@/lib/actions/dashboard";
+import { fetchDecryptedSecrets, syncProviders } from "@/lib/actions/dashboard";
 import ProviderCardShell from "@/components/dashboard/providers/provider-card-shell";
-import {smtpAccountSecrets} from "@db";
+import { smtpAccountSecrets } from "@db";
 
 export default async function ProvidersPage() {
 	const userProviders = await syncProviders();
 
-    const smtpSecrets = await fetchDecryptedSecrets({
-        linkTable: smtpAccountSecrets,
-        foreignCol: smtpAccountSecrets.accountId,
-        secretIdCol: smtpAccountSecrets.secretId
-    })
+	const smtpSecrets = await fetchDecryptedSecrets({
+		linkTable: smtpAccountSecrets,
+		foreignCol: smtpAccountSecrets.accountId,
+		secretIdCol: smtpAccountSecrets.secretId,
+	});
 
 	return (
 		<Container variant="wide">

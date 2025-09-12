@@ -112,7 +112,6 @@ export const providerSecrets = pgTable(
 			.notNull(),
 	},
 	(t) => [
-
 		pgPolicy("provsec_select_own", {
 			for: "select",
 			to: authenticatedRole,
@@ -176,7 +175,6 @@ export const providerSecrets = pgTable(
 		}),
 	],
 ).enableRLS();
-
 
 export const smtpAccounts = pgTable(
 	"smtp_accounts",
