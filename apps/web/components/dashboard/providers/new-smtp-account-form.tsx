@@ -1,214 +1,129 @@
 "use client";
 import React from "react";
-import {createSmtpAccount, SmtpAccountsWithSecretsRow, updateSmtpAccount} from "@/lib/actions/dashboard";
+import {
+    FetchDecryptedSecretsResultRow,
+    upsertSMTPAccount,
+} from "@/lib/actions/dashboard";
 import { SMTP_SPEC } from "@schema";
 import { ReusableForm } from "@/components/common/reusable-form";
 import { ulid } from "ulid";
 
 function NewSmtpAccountForm({
-                                vault,
-                                secretId,
-                                accountId
-                            }: {
-    vault?: SmtpAccountsWithSecretsRow["decrypted"]["vault"];
-    secretId?: string;
-    accountId?: string;
+    smtpSecret,
+    onCompleted
+}: {
+    smtpSecret?: FetchDecryptedSecretsResultRow
+    onCompleted?: () => void
 }) {
 
-    const parseVaultValues =
-        vault && vault.decrypted_secret ? JSON.parse(vault.decrypted_secret) : {};
+    const parsedVaultValues = smtpSecret?.vault?.decrypted_secret ? JSON.parse(smtpSecret?.vault?.decrypted_secret) : {};
 
-    const fields = [
-        { name: "ulid", props: { hidden: true, defaultValue: ulid() } },
-        { name: "secretId", props: { hidden: true, defaultValue: secretId } },
-        { name: "accountId", props: { hidden: true, defaultValue: accountId } },
+	const fields = [
+		{ name: "ulid", wrapperClasses: "hidden", props: { hidden: true, defaultValue: ulid() } },
+		{ name: "secretId", wrapperClasses: "hidden", props: { hidden: true, defaultValue: smtpSecret?.linkRow?.secretId } },
+		{ name: "accountId", wrapperClasses: "hidden", props: { hidden: true, defaultValue: smtpSecret?.linkRow?.accountId } },
 
-        {
-            name: "label",
-            label: (
-                <code className="rounded bg-muted/50 px-2 py-1 text-xs">ACCOUNT LABEL</code>
-            ),
-            required: true,
-            props: {
-                autoComplete: "off",
-                required: true,
-                placeholder: "My SMTP Account",
-                defaultValue: vault ? parseVaultValues["label"] ?? "" : "",
-            },
-        },
+		{
+			name: "label",
+			label: (
+				<code className="rounded bg-muted/50 px-2 py-1 text-xs">
+					ACCOUNT LABEL
+				</code>
+			),
+			required: true,
+			props: {
+				autoComplete: "off",
+				required: true,
+				placeholder: "My SMTP Account",
+				defaultValue: parsedVaultValues ? (parsedVaultValues["label"] ?? "") : "",
+			},
+		},
 
-        ...SMTP_SPEC.requiredEnv.map((row: string) => ({
-            name: `required.${row}`,
-            label: <code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>,
-            required: true,
-            props: {
-                autoComplete: "off",
-                required: true,
-                type: /PASSWORD/.test(row) ? "password" : "text",
-                defaultValue: vault ? parseVaultValues[row] ?? "" : "",
-            },
-        })),
+		...SMTP_SPEC.requiredEnv.map((rowKey: string) => ({
+			name: `required.${rowKey}`,
+			label: (
+				<code className="rounded bg-muted/50 px-2 py-1 text-xs">{rowKey}</code>
+			),
+			required: true,
+            wrapperClasses: "col-span-12 sm:col-span-6",
+			props: {
+				autoComplete: "off",
+				required: true,
+				// type: /PASSWORD/.test(rowKey) ? "password" : "text",
+				defaultValue: parsedVaultValues ? (parsedVaultValues[rowKey] ?? "") : "",
+			},
+		})),
 
-        {
-            el: (
-                <div className="my-3 md:my-4">
-                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                        Optional Environment Vars
-                    </h4>
-                </div>
-            ),
-        },
+		{
+			el: (
+				<div className="my-3 md:my-4">
+					<h4 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+						Optional Environment Vars
+					</h4>
+				</div>
+			),
+		},
 
-        ...SMTP_SPEC.optionalEnv.map((row: string) =>
-            row === "SMTP_SECURE" || row === "IMAP_SECURE"
-                ? {
-                    name: `optional.${row}`,
-                    label: (
-                        <code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>
-                    ),
-                    kind: "select" as const,
-                    options: [
-                        { label: "TRUE", value: "true" },
-                        { label: "FALSE", value: "false" },
-                    ],
-                    required: false,
-                    wrapperClasses: "col-span-12 sm:col-span-6",
-                    props: {
-                        autoComplete: "off",
-                        required: false,
-                        defaultValue: vault ? parseVaultValues[row] ?? "false" : "false",
-                        className: "w-full",
-                    },
-                }
-                : {
-                    name: `optional.${row}`,
-                    label: (
-                        <code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>
-                    ),
-                    required: false,
-                    wrapperClasses: "col-span-12 sm:col-span-6",
-                    props: {
-                        autoComplete: "off",
-                        required: false,
-                        type: /PASSWORD/.test(row) ? "password" : "text",
-                        defaultValue: vault ? parseVaultValues[row] ?? "" : "",
-                    },
-                }
-        ),
-    ];
+		...SMTP_SPEC.optionalEnv.map((rowKey: string) =>
+            rowKey === "SMTP_SECURE" || rowKey === "IMAP_SECURE"
+				? {
+						name: `optional.${rowKey}`,
+						label: (
+							<code className="rounded bg-muted/50 px-2 py-1 text-xs">
+								{rowKey}
+							</code>
+						),
+						kind: "select" as const,
+						options: [
+							{ label: "TRUE", value: "true" },
+							{ label: "FALSE", value: "false" },
+						],
+						required: false,
+						wrapperClasses: "col-span-12 sm:col-span-6",
+						props: {
+							autoComplete: "off",
+							required: false,
+							defaultValue: parsedVaultValues
+								? (parsedVaultValues[rowKey] ?? "false")
+								: "false",
+							className: "w-full",
+						},
+					}
+				: {
+						name: `optional.${rowKey}`,
+						label: (
+							<code className="rounded bg-muted/50 px-2 py-1 text-xs">
+								{rowKey}
+							</code>
+						),
+						required: false,
+						wrapperClasses: "col-span-12 sm:col-span-6",
+						props: {
+							autoComplete: "off",
+							required: false,
+							type: /PASSWORD/.test(rowKey) ? "password" : "text",
+							defaultValue: parsedVaultValues ? (parsedVaultValues[rowKey] ?? "") : "",
+						},
+					},
+		),
+	];
 
-    return (
-        <ReusableForm
-            action={ vault && vault.decrypted_secret ? updateSmtpAccount  : createSmtpAccount}
-            fields={fields}
-            {...(vault?.decrypted_secret
-                ? {
-                    submitButtonProps: {
-                        submitLabel: "Save",
-                        wrapperClasses: "justify-center mt-6 flex",
-                        fullWidth: true,
-                    },
-                }
-                : {})}
-        />
-    );
+	return (
+		<ReusableForm
+            action={upsertSMTPAccount}
+            onSuccess={onCompleted ? onCompleted : undefined}
+			fields={fields}
+			{...(parsedVaultValues
+				? {
+						submitButtonProps: {
+							submitLabel: "Save",
+							wrapperClasses: "justify-center mt-6 flex",
+							fullWidth: true,
+						},
+					}
+				: {})}
+		/>
+	);
 }
 
 export default NewSmtpAccountForm;
-
-
-
-
-// "use client";
-// import React from "react";
-// import {createSmtpAccount, SmtpAccountsWithSecretsRow} from "@/lib/actions/dashboard";
-// import { SMTP_SPEC } from "@schema";
-// import { ReusableForm } from "@/components/common/reusable-form";
-// import { ulid } from "ulid";
-//
-// function NewSmtpAccountForm({vault}: {vault?: SmtpAccountsWithSecretsRow["decrypted"]["vault"]}) {
-//
-//     const parseVaultValues = vault && vault.decrypted_secret ? JSON.parse(vault.decrypted_secret) : {};
-//
-// 	const fields = [
-//         {
-//             name: "ulid",
-//             props: {hidden: true, defaultValue: ulid()}
-//         },
-// 		{
-// 			name: `label`,
-// 			label: <code className="rounded bg-muted/50 px-2 py-1 text-xs">ACCOUNT LABEL</code>,
-// 			required: true,
-// 			props: { autoComplete: "off", required: true, placeholder: "My SMTP Account", defaultValue: vault ? parseVaultValues['label'] ?? "" : "" },
-// 		},
-// 		...SMTP_SPEC.requiredEnv.map((row) => {
-// 			return {
-// 				name: `required.${row}`,
-// 				label: (
-// 					<code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>
-// 				),
-// 				required: true,
-// 				props: { autoComplete: "off", required: true, type: row.match(/PASSWORD/) ? "password" : "text" , defaultValue: vault ? parseVaultValues[row] ?? "" : ""},
-// 			};
-// 		}),
-// 		{
-// 			el: (
-// 				<div className="my-3 md:my-4">
-// 					<h4 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-// 						Optional Environment Vars
-// 					</h4>
-// 				</div>
-// 			),
-// 		},
-// 		...SMTP_SPEC.optionalEnv.map((row) => {
-// 			if (row === "SMTP_SECURE" || row === "IMAP_SECURE") {
-// 				return {
-// 					name: `optional.${row}`,
-// 					label: (
-// 						<code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>
-// 					),
-// 					kind: "select" as const,
-// 					options: [
-// 						{ label: "TRUE", value: "true" },
-// 						{ label: "FALSE", value: "false" },
-// 					],
-// 					required: false,
-// 					wrapperClasses: "col-span-12 sm:col-span-6",
-// 					props: {
-// 						autoComplete: "off",
-// 						required: false,
-// 						defaultValue: vault ? parseVaultValues[row] ?? "false" : "false",
-// 						className: "w-full",
-// 					},
-// 				};
-// 			}
-// 			return {
-// 				name: `optional.${row}`,
-// 				label: (
-// 					<code className="rounded bg-muted/50 px-2 py-1 text-xs">{row}</code>
-// 				),
-// 				required: false,
-// 				wrapperClasses: "col-span-12 sm:col-span-6",
-// 				props: { autoComplete: "off", required: false, type: row.match(/PASSWORD/) ? "password" : "text", defaultValue: vault ? parseVaultValues[row] ?? "" : "" },
-// 			};
-// 		}),
-// 	];
-//
-//     return <>
-//         <ReusableForm
-//             action={createSmtpAccount}
-//             fields={fields}
-//             {...(vault?.decrypted_secret
-//                 ? {
-//                     submitButtonProps: {
-//                         submitLabel: "Save",
-//                         wrapperClasses: "justify-center mt-6 flex",
-//                         fullWidth: true,
-//                     },
-//                 }
-//                 : {})}
-//         />
-//     </>
-// }
-//
-// export default NewSmtpAccountForm;

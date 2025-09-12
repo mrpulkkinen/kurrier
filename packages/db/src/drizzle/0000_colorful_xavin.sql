@@ -9,7 +9,6 @@ CREATE TABLE "provider_secrets" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"provider_id" uuid NOT NULL,
 	"secret_id" uuid NOT NULL,
-	"key_name" varchar(120) NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -59,7 +58,6 @@ ALTER TABLE "secrets_meta" ADD CONSTRAINT "secrets_meta_owner_id_users_id_fk" FO
 ALTER TABLE "smtp_account_secrets" ADD CONSTRAINT "smtp_account_secrets_account_id_smtp_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."smtp_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "smtp_account_secrets" ADD CONSTRAINT "smtp_account_secrets_secret_id_secrets_meta_id_fk" FOREIGN KEY ("secret_id") REFERENCES "public"."secrets_meta"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "smtp_accounts" ADD CONSTRAINT "smtp_accounts_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "uniq_provider_key" ON "provider_secrets" USING btree ("provider_id","key_name");--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_provider_per_user" ON "providers" USING btree ("owner_id","type");--> statement-breakpoint
 CREATE UNIQUE INDEX "uniq_smtp_label_per_user" ON "smtp_accounts" USING btree ("owner_id","label");--> statement-breakpoint
 CREATE POLICY "provsec_select_own" ON "provider_secrets" AS PERMISSIVE FOR SELECT TO "authenticated" USING (

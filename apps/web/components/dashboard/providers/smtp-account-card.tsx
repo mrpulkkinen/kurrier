@@ -1,147 +1,113 @@
-"use client";
-import { SMTP_SPEC } from "@schema";
+import React from 'react';
 import {
-	Card,
-	CardAction,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, FilePlus2, Play, Plus } from "lucide-react";
-import * as React from "react";
-import StatusBadge from "@/components/dashboard/providers/provider-status-badge";
-import EnvRow from "@/components/dashboard/providers/env-row";
-import { isPresent } from "@/components/dashboard/providers/provider-card";
-import {Input} from "@mantine/core";
+    deleteSmtpAccount,
+    FetchDecryptedSecretsResultRow
+} from "@/lib/actions/dashboard";
+import {modals} from "@mantine/modals";
+import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
+import {cn} from "@/lib/utils";
+import {Lock, Mail, Pencil, ShieldCheck, Trash2} from "lucide-react";
+import {Button} from "@/components/ui/button";
 
-export default function SMTPAccountCard() {
-	const required = SMTP_SPEC.requiredEnv.map((n) => ({
-		name: n,
-		present: isPresent(n),
-		optional: false,
-	}));
-	const optional = SMTP_SPEC.optionalEnv.map((n) => ({
-		name: n,
-		present: isPresent(n),
-		optional: true,
-	}));
-	const allGood = required.every((e) => e.present);
+function SmtpAccountCard({smtpSecret}: {smtpSecret: FetchDecryptedSecretsResultRow}) {
 
-	function onTest() {
-		alert(
-			allGood
-				? "SMTP: looks configured (mock)."
-				: "SMTP: missing required env vars (mock).",
-		);
-	}
+    const parsedVaultValues = smtpSecret?.vault?.decrypted_secret ? JSON.parse(smtpSecret?.vault?.decrypted_secret) : {};
+    const openEdit = () => {
+        const openModalId = modals.open({
+            title: (
+                <div className="font-semibold text-brand-600">
+                    Edit SMTP Account
+                </div>
+            ),
+            size: "lg",
+            children: (
+                <div className="p-2">
+                    <NewSmtpAccountForm
+                        smtpSecret={smtpSecret}
+                        onCompleted={() => modals.close(openModalId)}
+                    />
+                </div>
+            ),
+        });
+    }
 
-	async function copyTemplate() {
-		const requiredLines = SMTP_SPEC.requiredEnv.map((k) => `${k}=`).join("\n");
-		const optionalLines = SMTP_SPEC.optionalEnv
-			.map((k) => `# ${k}=`)
-			.join("\n");
-		const block = `# ${SMTP_SPEC.name}\n${requiredLines}\n${optionalLines}\n`;
-		await navigator.clipboard.writeText(block);
-		alert(".env template copied");
-	}
 
-	return (
-		<>
-			<div className={"grid grid-cols-12"}>
-				<div className={"col-span-12 flex flex-col"}>
-					<Card className="shadow-none">
-						<CardHeader className="gap-3">
-							{/* stack by default; only go side-by-side on lg */}
-							<div className={"flex flex-col"}>
-								<CardTitle className="text-lg sm:text-xl">
-									{SMTP_SPEC.name}
-								</CardTitle>
-								{/*<p className="text-sm text-muted-foreground my-1">*/}
-								{/*    Managed via environment variables. Enable by adding the keys to*/}
-								{/*    your deployment.*/}
-								{/*</p>*/}
-								{/*<p className="text-xs text-muted-foreground/80">{SMTP_SPEC.help}</p>*/}
+    const confirmDelete = () =>
+        modals.openConfirmModal({
+            title: "Delete SMTP Account",
+            centered: true,
+            children: (
+                <div className="text-sm ">
+                    Are you sure you want to delete <b>{parsedVaultValues.label}</b>? This
+                    will remove the account and unlink any associated
+                    secrets.
+                </div>
+            ),
+            labels: { confirm: "Delete", cancel: "Cancel" },
+            confirmProps: { color: "red" },
+            onConfirm: () => {
+                deleteSmtpAccount(String(smtpSecret?.linkRow?.accountId));
+            },
+        });
 
-								<CardAction className="flex w-full flex-wrap gap-2 lg:w-auto lg:flex-nowrap lg:justify-end my-4">
-									<StatusBadge ok={allGood} />
 
-									{/*<Button*/}
-									{/*    variant="outline"*/}
-									{/*    asChild*/}
-									{/*    className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm"*/}
-									{/*>*/}
-									{/*    <a*/}
-									{/*        href={SMTP_SPEC.docsUrl}*/}
-									{/*        target="_blank"*/}
-									{/*        rel="noreferrer"*/}
-									{/*        className="gap-2"*/}
-									{/*    >*/}
-									{/*        <ExternalLink className="size-4" />*/}
-									{/*        Docs*/}
-									{/*    </a>*/}
-									{/*</Button>*/}
+    return <>
 
-									{/*<Button*/}
-									{/*    variant="outline"*/}
-									{/*    onClick={copyTemplate}*/}
-									{/*    className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"*/}
-									{/*>*/}
-									{/*    <FilePlus2 className="size-4" />*/}
-									{/*    Copy .env template*/}
-									{/*</Button>*/}
+        <div
+            className={cn(
+                "col-span-12 md:col-span-6",
+                "rounded-lg border text-brand-foreground p-5 bg-card border-border"
+            )}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <div className="text-base font-medium">{parsedVaultValues.label}</div>
+                    <div className="mt-1 text-sm  flex items-center gap-2">
+														<span className="inline-flex items-center gap-1">
+															<Lock className="h-3.5 w-3.5" />
+                                                            {parsedVaultValues.SMTP_HOST}:
+                                                            {parsedVaultValues.SMTP_PORT}
+														</span>
+                        <span className="">•</span>
+                        <span className="inline-flex items-center gap-1">
+															<ShieldCheck className="h-3.5 w-3.5" />
+                            {parsedVaultValues.SMTP_SECURE === "true"
+                                ? "TLS"
+                                : "STARTTLS"}
+														</span>
+                    </div>
+                    {parsedVaultValues.SMTP_FROM_EMAIL && (
+                        <div className="mt-1 text-xs  inline-flex items-center gap-1 text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />
+                            From: {parsedVaultValues.SMTP_FROM_EMAIL}
+                        </div>
+                    )}
+                </div>
 
-									<Button
-										onClick={onTest}
-										className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
-									>
-										<Play className="size-4" />
-										Test Connection
-									</Button>
-								</CardAction>
-							</div>
-						</CardHeader>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={openEdit}
+                    >
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={confirmDelete}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
 
-						<CardContent className="space-y-5">
-							<div className="space-y-3">
-								<div className="text-xs uppercase tracking-wider text-muted-foreground">
-									Required
-								</div>
-								{/*{required.map((row) => (*/}
-								{/*	<EnvRow key={row.name} name={row.name} present={row.present} />*/}
-								{/*))}*/}
-							</div>
-
-							{!!optional.length && (
-								<div className="space-y-3">
-									<div className="text-xs uppercase tracking-wider text-muted-foreground">
-										Optional
-									</div>
-									{/*{optional.map((row) => (*/}
-									{/*	<EnvRow key={row.name} name={row.name} present={row.present} />*/}
-									{/*))}*/}
-								</div>
-							)}
-
-							{!allGood && (
-								<div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-									Add the missing variables above to enable{" "}
-									<strong>{SMTP_SPEC.name}</strong>. Values live in your
-									deployment’s environment — this app doesn’t store provider
-									secrets.
-								</div>
-							)}
-
-							<div className={"flex justify-center"}>
-								<Button variant={"secondary"} size={"lg"}>
-									<Plus />
-									Add New SMTP Account
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
-				</div>
-			</div>
-		</>
-	);
+    </>
 }
+
+export default SmtpAccountCard;

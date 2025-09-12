@@ -13,9 +13,10 @@ import {
 } from "@db";
 import { FormState, PROVIDERS } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { decode } from "decode-formdata";
+import {PgColumn, PgTable} from "drizzle-orm/pg-core";
 
 export const syncProviders = async () => {
 	const rls = await rlsClient();
@@ -30,240 +31,209 @@ export const syncProviders = async () => {
 		tx
 			.select()
 			.from(providers)
-			.leftJoin(providerSecrets, eq(providerSecrets.providerId, providers.id)),
 	);
 	return rows;
 };
 
-export async function getProviderSecrets(providerId: string) {
-	const session = await currentSession();
-	const rls = await rlsClient();
-	const rows = await rls((tx) =>
-		tx
-			.select({
-				secret: providerSecrets,
-				meta: {
-					id: secretsMeta.id,
-				},
-			})
-			.from(providerSecrets)
-			.leftJoin(secretsMeta, eq(providerSecrets.secretId, secretsMeta.id))
-			.where(eq(providerSecrets.providerId, providerId)),
-	);
 
-	return await Promise.all(
-		rows.map(async (r) => ({
-			providerSecret: r.secret,
-			...(await getSecret(session, String(r?.meta?.id))),
-		})),
-	);
-}
-
-export type ProviderSecretsResult = Awaited<
-	ReturnType<typeof getProviderSecrets>
->;
-export type ProviderSecretRow = ProviderSecretsResult[number];
 export type SyncProvidersRow = Awaited<
 	ReturnType<typeof syncProviders>
 >[number];
 
-export async function saveProviderEnv(
-	_prev: FormState,
-	formData: FormData,
-): Promise<FormState> {
-	try {
-		const {
-			keys,
-			providerId,
-		}: { keys: Record<string, string>; providerId: string } = decode(formData);
-		const session = await currentSession();
 
-		const { rls } = await createDrizzleSupabaseClient(session);
+export async function upsertProviderAccount(_prev: FormState, formData: FormData): Promise<FormState> {
+    try {
+        const session = await currentSession();
+        const data = decode(formData);
+        const rls = await rlsClient();
+        const [providerSecret] = await rls((tx) =>
+            tx
+                .select()
+                .from(providerSecrets)
+                .where(eq(providerSecrets.providerId, String(data.providerId))),
+        );
 
-		for (const key in keys) {
-			const [currentProviderSecret] = await rls((tx) => {
-				return tx
-					.select()
-					.from(providerSecrets)
-					.where(
-						and(
-							eq(providerSecrets.providerId, providerId),
-							eq(providerSecrets.keyName, key),
-						),
-					)
-					.limit(1);
-			});
-			if (currentProviderSecret) {
-				await updateSecret(session, currentProviderSecret.secretId, {
-					name: `${session.user.id}-${key}`,
-					value: keys[key],
-				});
-			} else {
-				const newSecret = await createSecret(session, {
-					name: `${session.user.id}-${key}`,
-					value: keys[key],
-				});
-				await rls((tx) =>
-					tx.insert(providerSecrets).values({
-						providerId,
-						secretId: newSecret.id,
-						keyName: key,
-					}),
-				);
-			}
-		}
+        if (!providerSecret){
+            const newSecret = await createSecret(session, {
+                name: String(data.ulid),
+                value: JSON.stringify(data.required),
+            });
+            await rls((tx) =>
+                tx.insert(providerSecrets).values({
+                    providerId: String(data.providerId),
+                    secretId: newSecret.id
+                }),
+            );
+        } else {
+            await updateSecret(session, providerSecret.secretId, {
+                name: String(data.ulid),
+                value: JSON.stringify(data.required),
+            });
+        }
 
-		revalidatePath("/dashboard/providers");
+        revalidatePath("/dashboard/providers");
 
-		return { success: false, message: "Provider env saved" };
-	} catch (e) {
-		return { success: false, error: "Error saving provider env" };
-	}
+        return {
+            success: true,
+            message: "Successfully updated provider account",
+        };
+    } catch (e) {
+        console.log("error", e)
+        return {
+            success: false,
+            error: "Error updating provider account",
+        };
+    }
 }
 
-export async function getSmtpAccountsWithSecrets() {
-	const rls = await rlsClient();
-	const accountsWithSecrets = await rls((tx) =>
-		tx
-			.select()
-			.from(smtpAccounts)
-			.leftJoin(
-				smtpAccountSecrets,
-				eq(smtpAccountSecrets.accountId, smtpAccounts.id),
-			),
-	);
 
+export async function upsertSMTPAccount(_prev: FormState, formData: FormData): Promise<FormState> {
+    try {
+        const session = await currentSession();
+        const data = decode(formData);
+        const cleanedRequired = Object.fromEntries(
+            Object.entries(data.required ?? {}).filter(
+                ([, v]) => v !== "" && v != null,
+            ),
+        );
+        const cleanedOptional = Object.fromEntries(
+            Object.entries(data.optional ?? {}).filter(
+                ([, v]) => v !== "" && v != null,
+            ),
+        );
+
+        const smtpConfig = {
+            ulid: data.ulid,
+            label: String(data.label || "My SMTP Account").trim(),
+            ...cleanedRequired,
+            ...cleanedOptional,
+        };
+
+        const rls = await rlsClient();
+
+        if (data.accountId) {
+            const [accountSecret] = await rls((tx) =>
+                tx
+                    .select()
+                    .from(smtpAccountSecrets)
+                    .where(eq(smtpAccountSecrets.accountId, String(data.accountId))),
+            );
+
+            if (!accountSecret){
+                const newSecret = await createSecret(session, {
+                    name: String(data.ulid),
+                    value: JSON.stringify(smtpConfig),
+                });
+                await rls((tx) =>
+                    tx.insert(accountSecret).values({
+                        providerId: String(data.accountId),
+                        secretId: newSecret.id
+                    }),
+                );
+            } else {
+                await updateSecret(session, accountSecret.secretId, {
+                    value: JSON.stringify(smtpConfig),
+                });
+            }
+        } else {
+
+            // Create new account
+
+            const secretMeta = await createSecret(session, {
+                name: String(data.ulid),
+                value: JSON.stringify(smtpConfig),
+            });
+
+
+            const [smtpAccount] = await rls((tx) =>
+                tx
+                    .insert(smtpAccounts)
+                    .values({})
+                    .returning(),
+            );
+
+            await rls((tx) =>
+                tx
+                    .insert(smtpAccountSecrets)
+                    .values({
+                        accountId: smtpAccount.id,
+                        secretId: secretMeta.id,
+                    })
+                    .returning(),
+            );
+
+        }
+
+
+
+        revalidatePath("/dashboard/providers");
+
+        return {
+            success: true,
+            message: "Done",
+        };
+    } catch (e) {
+        console.log("error", e)
+        return {
+            success: false,
+            error: "Error updating provider account",
+        };
+    }
+}
+
+
+export async function fetchDecryptedSecrets({
+      linkTable,
+      foreignCol,
+      secretIdCol,
+      parentId
+  }: {
+    linkTable: PgTable;
+    foreignCol: PgColumn; // e.g. providerSecrets.providerId
+    secretIdCol: PgColumn; // e.g. providerSecrets.secretId
+    parentId?: string;
+}) {
+
+    const rls = await rlsClient();
     const session = await currentSession();
-    const decryptedSecrets = await Promise.all(
-        accountsWithSecrets.map(async (account) => {
-            const secret = await getSecret(session, String(account?.smtp_account_secrets?.secretId));
-            return {
-                ...account,
-                decrypted: secret,
-            };
-        })
-    );
 
-	return decryptedSecrets;
+    const rows = await rls((tx) => {
+        let q = tx
+            .select({
+                linkRow: linkTable,
+                metaId: secretsMeta.id,
+            })
+            .from(linkTable)
+            .leftJoin(secretsMeta, eq(secretIdCol, secretsMeta.id))
+            .$dynamic(); // <-- allow conditional chaining
+
+        if (parentId) {
+            q = q.where(eq(foreignCol, parentId));
+        }
+
+        return q;
+    });
+
+    return Promise.all(
+        rows.map(async (r) => {
+            const metaId = String(r.metaId);
+            const { vault } = await getSecret(session, metaId);
+            return { linkRow: r.linkRow, metaId, vault };
+        }),
+    );
 }
 
-export type SmtpAccountsWithSecretsResult = Awaited<
-	ReturnType<typeof getSmtpAccountsWithSecrets>
+export type FetchDecryptedSecretsResult = Awaited<
+    ReturnType<typeof fetchDecryptedSecrets>
 >;
 
-export type SmtpAccountsWithSecretsRow = SmtpAccountsWithSecretsResult[number];
-
-export async function createSmtpAccount(
-	_prev: FormState,
-	formData: FormData,
-): Promise<FormState> {
-
-    try {
-        const data = decode(formData);
-        const cleanedRequired = Object.fromEntries(
-            Object.entries(data.required ?? {}).filter(([, v]) => v !== "" && v != null)
-        );
-        const cleanedOptional = Object.fromEntries(
-            Object.entries(data.optional ?? {}).filter(([, v]) => v !== "" && v != null)
-        );
-
-        const smtpConfig = {
-            ulid: data.ulid,
-            label: String(data.label || "My SMTP Account").trim(),
-            ...cleanedRequired,
-            ...cleanedOptional,
-        };
-
-        const session = await currentSession();
-        const secretMeta = await createSecret(session, {
-            name: String(data.ulid),
-            value: JSON.stringify(smtpConfig),
-        })
-
-        const rls = await rlsClient();
-        const [smtpAccount] = await rls((tx) =>
-            tx.insert(smtpAccounts).values({
-                label: smtpConfig.label
-            }).returning()
-        )
-
-        await rls((tx) =>
-            tx.insert(smtpAccountSecrets).values({
-                accountId: smtpAccount.id,
-                secretId: secretMeta.id,
-            }).returning()
-        )
-
-        revalidatePath("/dashboard/providers")
-
-        return {
-            success: true,
-            message: "Successfully created SMTP account",
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: "Error creating SMTP account",
-        }
-    }
-}
-
-export async function updateSmtpAccount(
-    _prev: FormState,
-    formData: FormData,
-): Promise<FormState> {
-
-    try {
-        const data = decode(formData);
-        const cleanedRequired = Object.fromEntries(
-            Object.entries(data.required ?? {}).filter(([, v]) => v !== "" && v != null)
-        );
-        const cleanedOptional = Object.fromEntries(
-            Object.entries(data.optional ?? {}).filter(([, v]) => v !== "" && v != null)
-        );
-
-        const smtpConfig = {
-            ulid: data.ulid,
-            label: String(data.label || "My SMTP Account").trim(),
-            ...cleanedRequired,
-            ...cleanedOptional,
-        };
-
-        const session = await currentSession();
-        await updateSecret(session, String(data.secretId), {
-            name: String(data.ulid),
-            value: JSON.stringify(smtpConfig),
-        })
-
-        const rls = await rlsClient();
-        await rls((tx) =>
-            tx.update(smtpAccounts).set({
-                label: smtpConfig.label
-            }).where(eq(smtpAccounts.id, String(data.accountId)))
-        )
-
-        revalidatePath("/dashboard/providers")
-
-        return {
-            success: true,
-            message: "Successfully created SMTP account",
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: "Error creating SMTP account",
-        }
-    }
-}
-
+export type FetchDecryptedSecretsResultRow = FetchDecryptedSecretsResult[number];
 
 export const deleteSmtpAccount = async (id: string) => {
-    const rls = await rlsClient();
-    await rls((tx) =>
-        tx.delete(smtpAccounts).where(eq(smtpAccounts.id, id))
-    );
-    revalidatePath("/dashboard/providers")
-}
+	const rls = await rlsClient();
+	await rls((tx) => tx.delete(smtpAccounts).where(eq(smtpAccounts.id, id)));
+	revalidatePath("/dashboard/providers");
+};
 
 export const rlsClient = async () => {
 	const session = await currentSession();

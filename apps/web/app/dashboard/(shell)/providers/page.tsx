@@ -2,18 +2,27 @@ import * as React from "react";
 import { Container } from "@/components/common/containers";
 import { PROVIDERS } from "@schema";
 import SMTPCard from "@/components/dashboard/providers/smtp-card";
-import {getSmtpAccountsWithSecrets, syncProviders} from "@/lib/actions/dashboard";
+import {
+    fetchDecryptedSecrets,
+    syncProviders,
+} from "@/lib/actions/dashboard";
 import ProviderCardShell from "@/components/dashboard/providers/provider-card-shell";
+import {smtpAccountSecrets} from "@db";
 
 export default async function ProvidersPage() {
 	const userProviders = await syncProviders();
-    const accountsWithSecrets = await getSmtpAccountsWithSecrets();
+
+    const smtpSecrets = await fetchDecryptedSecrets({
+        linkTable: smtpAccountSecrets,
+        foreignCol: smtpAccountSecrets.accountId,
+        secretIdCol: smtpAccountSecrets.secretId
+    })
 
 	return (
 		<Container variant="wide">
 			<div className="my-8 space-y-6">
 				<div className="flex items-center justify-between">
-					<h1 className="text-xl font-bold text-brand-600">Providers</h1>
+					<h1 className="text-xl font-bold text-foreground">Providers</h1>
 				</div>
 
 				<p className="max-w-prose text-sm text-muted-foreground">
@@ -32,7 +41,7 @@ export default async function ProvidersPage() {
 					))}
 				</div>
 				<div className="grid gap-6">
-					<SMTPCard accountsWithSecrets={accountsWithSecrets} />
+					<SMTPCard smtpSecrets={smtpSecrets} />
 				</div>
 			</div>
 		</Container>

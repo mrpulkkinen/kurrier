@@ -132,11 +132,7 @@ export function AppearanceProvider({
 		[theme, mode, pending],
 	);
 
-
-
-	return <Ctx.Provider value={value}>
-            {children}
-    </Ctx.Provider>;
+	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useAppearance() {

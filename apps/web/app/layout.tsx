@@ -14,10 +14,14 @@ import {
 	ThemeNameSchema,
 } from "@schema/types/themes";
 import { getPublicEnv } from "@schema";
-import '@mantine/core/styles.css';
-import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
-import {createMantineTheme} from "@/lib/mantine-theme";
-import { ModalsProvider } from '@mantine/modals';
+import "@mantine/core/styles.css";
+import {
+	ColorSchemeScript,
+	MantineProvider,
+	mantineHtmlProps,
+} from "@mantine/core";
+import { createMantineTheme } from "@/lib/mantine-theme";
+import { ModalsProvider } from "@mantine/modals";
 
 const jakartaSans = Plus_Jakarta_Sans({
 	variable: "--font-sans",
@@ -53,28 +57,35 @@ export default async function RootLayout({
 		mode === "dark" ? true : mode === "light" ? false : resolved === "dark";
 
 	const publicConfig = getPublicEnv();
-    const {theme: mantineTheme, colorScheme} = createMantineTheme({theme, mode});
+	const { theme: mantineTheme, colorScheme } = createMantineTheme({
+		theme,
+		mode,
+	});
 
 	return (
 		<html
 			lang="en"
 			data-theme={theme}
 			className={`${initialDark ? "dark" : ""}`}
-            {...mantineHtmlProps}
+			{...mantineHtmlProps}
 		>
-            <head>
-                <ColorSchemeScript defaultColorScheme={colorScheme} nonce="8IBTHwOdqNKAWeKl7plt8g=="/>
-            </head>
+			<head>
+				<ColorSchemeScript
+					defaultColorScheme={colorScheme}
+					nonce="8IBTHwOdqNKAWeKl7plt8g=="
+				/>
+			</head>
 			<body
 				className={`${jakartaSans.variable} ${jetbrains.variable} font-sans bg-background text-foreground antialiased`}
 			>
 				<ConfigProvider value={publicConfig}>
 					<AppearanceProvider initialTheme={theme} initialMode={mode}>
-                        <MantineProvider theme={mantineTheme} defaultColorScheme={colorScheme}>
-                            <ModalsProvider>
-                                {children}
-                            </ModalsProvider>
-                        </MantineProvider>
+						<MantineProvider
+							theme={mantineTheme}
+							defaultColorScheme={colorScheme}
+						>
+							<ModalsProvider>{children}</ModalsProvider>
+						</MantineProvider>
 					</AppearanceProvider>
 				</ConfigProvider>
 			</body>

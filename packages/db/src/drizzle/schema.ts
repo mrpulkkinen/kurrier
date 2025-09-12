@@ -4,11 +4,8 @@ import {
 	text,
 	timestamp,
 	pgPolicy,
-	varchar,
-	boolean,
 	pgEnum,
 	uniqueIndex,
-	integer,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
@@ -106,7 +103,7 @@ export const providerSecrets = pgTable(
 		secretId: uuid("secret_id")
 			.references(() => secretsMeta.id, { onDelete: "cascade" })
 			.notNull(),
-		keyName: varchar("key_name", { length: 120 }).notNull(),
+		// keyName: varchar("key_name", { length: 120 }).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -115,8 +112,6 @@ export const providerSecrets = pgTable(
 			.notNull(),
 	},
 	(t) => [
-		// 🔐 one key per provider
-		uniqueIndex("uniq_provider_key").on(t.providerId, t.keyName),
 
 		pgPolicy("provsec_select_own", {
 			for: "select",
@@ -182,42 +177,6 @@ export const providerSecrets = pgTable(
 	],
 ).enableRLS();
 
-// export const smtpProvider = pgTable(
-//     "smtp_provider",
-//     {
-//         id: uuid("id").defaultRandom().primaryKey(),
-//         ownerId: uuid("owner_id")
-//             .references(() => users.id)
-//             .notNull()
-//             .default(sql`auth.uid()`),
-//         name: text("name").notNull(),
-//         description: text("description"),
-//         vaultSecret: uuid("vault_secret").notNull(),
-//     },
-//     (t) => [
-//         pgPolicy("select_own", {
-//             for: "select",
-//             to: authenticatedRole,
-//             using: sql`${t.ownerId} = ${authUid}`,
-//         }),
-//         pgPolicy("insert_own", {
-//             for: "insert",
-//             to: authenticatedRole,
-//             withCheck: sql`${t.ownerId} = ${authUid}`,
-//         }),
-//         pgPolicy("update_own", {
-//             for: "update",
-//             to: authenticatedRole,
-//             using: sql`${t.ownerId} = ${authUid}`,
-//             withCheck: sql`${t.ownerId} = ${authUid}`,
-//         }),
-//         pgPolicy("delete_own", {
-//             for: "delete",
-//             to: authenticatedRole,
-//             using: sql`${t.ownerId} = ${authUid}`,
-//         }),
-//     ],
-// ).enableRLS();
 
 export const smtpAccounts = pgTable(
 	"smtp_accounts",
@@ -227,7 +186,7 @@ export const smtpAccounts = pgTable(
 			.references(() => users.id)
 			.notNull()
 			.default(sql`auth.uid()`),
-		label: varchar("label", { length: 120 }).notNull(), // “Work SMTP”, “Personal”, etc.
+		// label: varchar("label", { length: 120 }).notNull(), // “Work SMTP”, “Personal”, etc.
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -236,7 +195,7 @@ export const smtpAccounts = pgTable(
 			.notNull(),
 	},
 	(t) => [
-		uniqueIndex("uniq_smtp_label_per_user").on(t.ownerId, t.label),
+		// uniqueIndex("uniq_smtp_label_per_user").on(t.ownerId, t.label),
 		pgPolicy("smtp_select_own", {
 			for: "select",
 			to: authenticatedRole,

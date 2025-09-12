@@ -1,6 +1,7 @@
 import { ProviderSpec } from "@schema";
-import { getProviderSecrets, SyncProvidersRow } from "@/lib/actions/dashboard";
+import {fetchDecryptedSecrets, SyncProvidersRow} from "@/lib/actions/dashboard";
 import ProviderCard from "@/components/dashboard/providers/provider-card";
+import {providerSecrets} from "@db";
 
 type Props = {
 	userProviders: SyncProvidersRow[];
@@ -11,15 +12,18 @@ export default async function ProviderCardShell({
 	userProviders,
 	spec,
 }: Props) {
-	const userProvider = userProviders.find((p) => p.providers.type === spec.key);
+	const userProvider = userProviders.find((p) => p.type === spec.key);
 
-	const secrets = userProvider
-		? await getProviderSecrets(userProvider.providers.id)
-		: [];
+    const decryptedSecrets = await fetchDecryptedSecrets({
+        linkTable: providerSecrets,
+        foreignCol: providerSecrets.providerId,
+        secretIdCol: providerSecrets.secretId,
+        parentId: String(userProvider?.id),
+    })
 
 	if (userProvider) {
 		return (
-			<ProviderCard spec={spec} userProvider={userProvider} secrets={secrets} />
+			<ProviderCard spec={spec} userProvider={userProvider} decryptedSecrets={decryptedSecrets} />
 		);
 	} else {
 		return <div>No Providers Found</div>;

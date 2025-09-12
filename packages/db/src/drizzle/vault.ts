@@ -33,14 +33,6 @@ async function vaultDeleteSecret(tx: PgTransaction<any, any, any>, id: string) {
 	await tx.execute(sql`select vault.delete_secret(${id})`);
 }
 
-// async function vaultGetSecret(tx: PgTransaction<any, any, any>, id: string) {
-// 	// const rows = await tx.execute(sql`select vault.get_secret(${id}) as value`);
-// 	const rows = await tx.execute(sql`select vault.decrypted_secrets(${id}) as value`);
-//     console.log("rows", rows)
-// 	const value = (rows as any)[0]?.value as string | null | undefined;
-// 	return value ?? null;
-// }
-
 async function vaultGetSecret(
 	tx: PgTransaction<any, any, any>,
 	id: string,

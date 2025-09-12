@@ -1,6 +1,6 @@
 {
-  "id": "f41bad6a-93c2-4b70-80cd-3d6408a72562",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "768123a0-ceb0-4f0c-a1ae-b54d81ea1185",
+  "prevId": "f41bad6a-93c2-4b70-80cd-3d6408a72562",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -513,12 +513,6 @@
           "notNull": true,
           "default": "auth.uid()"
         },
-        "label": {
-          "name": "label",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -534,29 +528,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "uniq_smtp_label_per_user": {
-          "name": "uniq_smtp_label_per_user",
-          "columns": [
-            {
-              "expression": "owner_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "label",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "smtp_accounts_owner_id_users_id_fk": {
           "name": "smtp_accounts_owner_id_users_id_fk",
