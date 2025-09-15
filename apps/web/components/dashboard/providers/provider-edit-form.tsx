@@ -6,19 +6,20 @@ import {
 	FetchDecryptedSecretsResult,
 	upsertProviderAccount,
 } from "@/lib/actions/dashboard";
+import {parseSecret} from "@/lib/utils";
 
 function ProviderEditForm({
 	spec,
+    onCompleted,
 	providerId,
 	decryptedSecrets,
 }: {
 	spec: ProviderSpec;
+    onCompleted: () => void;
 	providerId: string;
 	decryptedSecrets: FetchDecryptedSecretsResult;
 }) {
-	const decryptedValues = decryptedSecrets[0]?.vault?.decrypted_secret
-		? JSON.parse(decryptedSecrets[0]?.vault?.decrypted_secret)
-		: {};
+	const decryptedValues = parseSecret(decryptedSecrets[0])
 
 	const fields = [
 		{
@@ -47,7 +48,7 @@ function ProviderEditForm({
 		})),
 	];
 
-	return <ReusableForm fields={fields} action={upsertProviderAccount} />;
+	return <ReusableForm fields={fields} onSuccess={onCompleted} action={upsertProviderAccount} />;
 }
 
 export default ProviderEditForm;

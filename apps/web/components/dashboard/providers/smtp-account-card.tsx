@@ -1,33 +1,38 @@
-import React from "react";
+import React, {useState} from "react";
 import {
-	deleteSmtpAccount,
-	FetchDecryptedSecretsResultRow,
+    deleteSmtpAccount,
+    FetchDecryptedSecretsResultRow, testSmtpAccount,
 } from "@/lib/actions/dashboard";
 import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
-import { cn } from "@/lib/utils";
-import { Lock, Mail, Pencil, ShieldCheck, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {cn, parseSecret} from "@/lib/utils";
+import {Lock, Mail, Pencil, Play, ShieldCheck, Trash2} from "lucide-react";
+import {ActionIcon, Button} from "@mantine/core";
+import {Toaster, toast} from "sonner";
+import {useAppearance} from "@/components/providers/appearance-provider";
+import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
+import {VerifyResult} from "@providers";
 
 function SmtpAccountCard({
 	smtpSecret,
 }: {
 	smtpSecret: FetchDecryptedSecretsResultRow;
 }) {
-	const parsedVaultValues = smtpSecret?.vault?.decrypted_secret
-		? JSON.parse(smtpSecret?.vault?.decrypted_secret)
-		: {};
+	const parsedVaultValues = parseSecret(smtpSecret);
 	const openEdit = () => {
 		const openModalId = modals.open({
 			title: (
-				<div className="font-semibold text-brand-600">Edit SMTP Account</div>
+				<div className="font-semibold text-brand-foreground">Edit SMTP Account</div>
 			),
 			size: "lg",
 			children: (
 				<div className="p-2">
 					<NewSmtpAccountForm
 						smtpSecret={smtpSecret}
-						onCompleted={() => modals.close(openModalId)}
+						onCompleted={(res: VerifyResult) => {
+                            initiateSMTPTest(res)
+                            modals.close(openModalId)
+                        }}
 					/>
 				</div>
 			),
@@ -36,7 +41,7 @@ function SmtpAccountCard({
 
 	const confirmDelete = () =>
 		modals.openConfirmModal({
-			title: "Delete SMTP Account",
+            title: <div className={"font-semibold text-brand-foreground"}>Delete SMTP Account</div>,
 			centered: true,
 			children: (
 				<div className="text-sm ">
@@ -51,6 +56,56 @@ function SmtpAccountCard({
 			},
 		});
 
+
+    const [testing, setTesting] = useState(false);
+
+
+    const initiateSMTPTest = async (verifyResponse?: VerifyResult) => {
+        setTesting(true);
+
+        try {
+            const res = verifyResponse ? verifyResponse : await testSmtpAccount(smtpSecret);
+
+            if (res.meta?.send) {
+                toast.success("SMTP connection verified", {
+                    description: "Outgoing mail server is reachable and credentials are valid.",
+                });
+            } else {
+                toast.error("SMTP verification failed", {
+                    description:
+                        String(res.meta?.response) || "Could not connect with the provided SMTP credentials.",
+                });
+            }
+
+            if (res.meta?.receive !== undefined) {
+                if (res.meta.receive) {
+                    toast.success("IMAP connection verified", {
+                        description: "Incoming mail server is reachable and credentials are valid.",
+                    });
+                } else {
+                    toast.error("IMAP verification failed", {
+                        description:
+                            String(res.meta?.response) || "Could not connect with the provided IMAP credentials.",
+                    });
+                }
+            }
+
+            if (!res.ok) {
+                toast.error("SMTP verification failed", {
+                    description: res.message || "Verification failed due to an unknown error.",
+                });
+            }
+        } catch (err: any) {
+            toast.error("Verification error", {
+                description: err?.message ?? "Unexpected error during SMTP/IMAP test.",
+            });
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    const {mode} = useAppearance()
+
 	return (
 		<>
 			<div
@@ -59,6 +114,7 @@ function SmtpAccountCard({
 					"rounded-lg border text-brand-foreground p-5 bg-card border-border",
 				)}
 			>
+                <Toaster theme={mode} expand={true} />
 				<div className="flex items-start justify-between gap-3">
 					<div>
 						<div className="text-base font-medium">
@@ -75,33 +131,43 @@ function SmtpAccountCard({
 								{parsedVaultValues.SMTP_SECURE === "true" ? "TLS" : "STARTTLS"}
 							</span>
 						</div>
-						{parsedVaultValues.SMTP_FROM_EMAIL && (
-							<div className="mt-1 text-xs  inline-flex items-center gap-1 text-muted-foreground">
-								<Mail className="h-3.5 w-3.5" />
-								From: {parsedVaultValues.SMTP_FROM_EMAIL}
-							</div>
-						)}
+                        <div className="mt-1 text-sm  flex items-center gap-2">
+                            {parsedVaultValues.IMAP_HOST && parsedVaultValues.IMAP_PORT && <span className="inline-flex items-center gap-1">
+								<Lock className="h-3.5 w-3.5" />
+                                {parsedVaultValues.IMAP_HOST}:{parsedVaultValues.IMAP_PORT}
+							</span>}
+                            {parsedVaultValues.IMAP_SECURE === "true" && <span className="">•</span>}
+                            {parsedVaultValues.IMAP_SECURE === "true" && <span className="inline-flex items-center gap-1">
+								<ShieldCheck className="h-3.5 w-3.5" />
+                                {parsedVaultValues.IMAP_SECURE === "true" ? "TLS" : "STARTTLS"}
+							</span>}
+                        </div>
+                        <div className={'flex justify-start -mx-2 my-2'}>
+                            <IsVerifiedStatus verified={parsedVaultValues.sendVerified} statusName={"Outgoing"} />
+                            <IsVerifiedStatus verified={parsedVaultValues.receiveVerified} statusName={"Incoming"} />
+                        </div>
+                        <Button className={"my-2"}
+                                leftSection={<Play className="size-4" />}
+                                loading={testing}
+                                onClick={() => initiateSMTPTest()} size={"xs"} variant={"filled"}>Test Connection</Button>
 					</div>
 
 					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							className="gap-1.5"
-							onClick={openEdit}
-						>
-							<Pencil className="h-4 w-4" />
-							Edit
-						</Button>
-						<Button
-							variant="destructive"
-							size="sm"
+                        <ActionIcon
+                            variant="filled"
+                            className="gap-1.5"
+                            onClick={openEdit}
+                        >
+                            <Pencil className="h-3 w-3" />
+                        </ActionIcon>
+						<ActionIcon
+                            color="red"
+                            // loading={true}
 							className="gap-1.5"
 							onClick={confirmDelete}
 						>
-							<Trash2 className="h-4 w-4" />
-							Delete
-						</Button>
+                            <Trash2 className="h-3 w-3" />
+						</ActionIcon>
 					</div>
 				</div>
 			</div>

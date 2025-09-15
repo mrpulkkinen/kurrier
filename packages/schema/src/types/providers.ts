@@ -70,11 +70,12 @@ export const SMTP_SPEC = {
 		"SMTP_PORT",
 		"SMTP_USERNAME",
 		"SMTP_PASSWORD",
+        "SMTP_SECURE", // true => implicit TLS(465); false/empty => STARTTLS (587)
+        // "SMTP_FROM_EMAIL",
+        "SMTP_POOL",
 	] as const,
 	optionalEnv: [
-		"SMTP_SECURE", // true => implicit TLS(465); false/empty => STARTTLS (587)
-		"SMTP_FROM_EMAIL",
-		"SMTP_FROM_NAME",
+		// "SMTP_FROM_NAME",
 		"IMAP_HOST",
 		"IMAP_PORT",
 		"IMAP_USERNAME",

@@ -1,18 +1,23 @@
 import {
-	pgTable,
-	uuid,
-	text,
-	timestamp,
-	pgPolicy,
-	pgEnum,
-	uniqueIndex,
+    pgTable,
+    uuid,
+    text,
+    timestamp,
+    pgPolicy,
+    pgEnum,
+    uniqueIndex, boolean,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
-import { providersList } from "@schema";
+import { identityStatusList, identityTypesList, providersList } from "@schema";
 
 export const ProviderKindEnum = pgEnum("provider_kind", providersList);
+
+export const IdentityKindEnum = pgEnum("identity_kind", identityTypesList);
+export const IdentityStatusEnum = pgEnum("identity_status", identityStatusList);
+
+
 
 export const secretsMeta = pgTable(
 	"secrets_meta",
@@ -287,12 +292,73 @@ export const smtpAccountSecrets = pgTable(
 	],
 ).enableRLS();
 
-export const emailsTable = pgTable("emails", {
-	id: uuid().defaultRandom().primaryKey(),
-	user_id: uuid("user_id")
-		.references(() => users.id)
-		.notNull(),
-	created: timestamp("created", { mode: "string", withTimezone: true })
-		.defaultNow()
-		.notNull(),
-});
+
+export const identities = pgTable(
+    "identities",
+    {
+        id: uuid("id").defaultRandom().primaryKey(),
+
+        ownerId: uuid("owner_id")
+            .references(() => users.id)
+            .notNull()
+            .default(sql`auth.uid()`),
+
+        kind: IdentityKindEnum("kind").notNull(),
+        value: text("value").notNull(),            // domain or email address
+        // displayName: text("display_name"),         // optional: “From name” for email identities
+
+        // Which provider family the account belongs to (e.g. "smtp", "ses")
+        // providerType: ProviderKindEnum("provider_type").notNull(),
+
+        // Exactly one of these should be set:
+        providerId: uuid("provider_id").references(() => providers.id),      // SES/SendGrid/Mailgun/Postmark
+        smtpAccountId: uuid("smtp_account_id").references(() => smtpAccounts.id), // Custom SMTP
+
+        status: IdentityStatusEnum("status").notNull().default("unverified"),
+        // lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
+        // lastError: text("last_error"),
+
+        // isDefault: boolean("is_default").notNull().default(false), // relevant for email identities
+
+        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    },
+    (t) => [
+        // avoid duplicates per user for same kind+value
+        uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
+        // uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
+
+        // RLS: standard owner controls
+        pgPolicy("identities_select_own", {
+            for: "select",
+            to: authenticatedRole,
+            using: sql`${t.ownerId} = ${authUid}`,
+        }),
+        pgPolicy("identities_insert_own", {
+            for: "insert",
+            to: authenticatedRole,
+            withCheck: sql`${t.ownerId} = ${authUid}`,
+        }),
+        pgPolicy("identities_update_own", {
+            for: "update",
+            to: authenticatedRole,
+            using: sql`${t.ownerId} = ${authUid}`,
+            withCheck: sql`${t.ownerId} = ${authUid}`,
+        }),
+        pgPolicy("identities_delete_own", {
+            for: "delete",
+            to: authenticatedRole,
+            using: sql`${t.ownerId} = ${authUid}`,
+        }),
+    ],
+).enableRLS();
+
+// export const emailsTable = pgTable("emails", {
+// 	id: uuid().defaultRandom().primaryKey(),
+// 	user_id: uuid("user_id")
+// 		.references(() => users.id)
+// 		.notNull(),
+// 	created: timestamp("created", { mode: "string", withTimezone: true })
+// 		.defaultNow()
+// 		.notNull(),
+// });

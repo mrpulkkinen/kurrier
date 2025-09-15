@@ -28,27 +28,3 @@ const createDbRls = () => {
 
 export const db = createDb();
 export const db_rls = createDbRls();
-
-// import { drizzle } from "drizzle-orm/postgres-js";
-// import postgres from "postgres";
-// import { getServerEnv } from "@schema";
-//
-//
-// declare global {
-//     var _db: ReturnType<typeof drizzle> | undefined;
-// }
-//
-// const createDb = ((url) => {
-//
-//     const { DATABASE_URL } = getServerEnv();
-//
-//     return () => {
-//         if (!global._db) {
-//             const client = postgres(String(DATABASE_URL), { prepare: false });
-//             global._db = drizzle(client);
-//         }
-//         return global._db;
-//     };
-// })();
-//
-// export const db = createDb()

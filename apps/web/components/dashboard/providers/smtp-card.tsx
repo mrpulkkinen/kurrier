@@ -7,13 +7,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import * as React from "react";
 import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
 import { FetchDecryptedSecretsResult } from "@/lib/actions/dashboard";
 import SmtpAccountCard from "@/components/dashboard/providers/smtp-account-card";
+import {Button} from "@mantine/core";
 
 export default function SMTPCard({
 	smtpSecrets,
@@ -23,7 +24,7 @@ export default function SMTPCard({
 	const openAddModal = () => {
 		const openModalId = modals.open({
 			title: (
-				<div className="font-semibold text-brand-600">Add SMTP Account</div>
+				<div className="font-semibold text-brand-foreground">Add SMTP Account</div>
 			),
 			closeOnEscape: false,
 			closeOnClickOutside: false,
@@ -55,7 +56,7 @@ export default function SMTPCard({
 
 							<CardAction className="mt-3 lg:mt-0">
 								<Button
-									variant="default"
+									// variant="default"
 									size="sm"
 									onClick={openAddModal}
 									className="gap-2"

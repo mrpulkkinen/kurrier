@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {FetchDecryptedSecretsResult} from "@/lib/actions/dashboard";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -17,4 +18,9 @@ export function formDataToJson(formData: FormData) {
 		}
 	});
 	return data;
+}
+
+
+export function parseSecret(obj?: FetchDecryptedSecretsResult[number] | null): Record<string, any> {
+    return obj?.vault?.decrypted_secret ? JSON.parse(obj.vault.decrypted_secret) : {};
 }
