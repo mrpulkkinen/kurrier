@@ -1,4 +1,5 @@
 import {z} from "zod";
+import {IdentityStatus} from "@schema";
 
 export type VerifyResult = {
     ok: boolean;
@@ -44,6 +45,21 @@ export const RawSmtpConfigSchema = z
 
 export type SmtpVerifyInput = z.infer<typeof RawSmtpConfigSchema>;
 
+
+export const RawSesConfigSchema = z
+    .object({
+        SES_ACCESS_KEY_ID: z.string(),
+        SES_SECRET_ACCESS_KEY: z.string(),
+        SES_REGION: z.string(),
+    })
+    .transform((r) => ({
+        accessKeyId: r.SES_ACCESS_KEY_ID,
+        secretAccessKey: r.SES_SECRET_ACCESS_KEY,
+        region: r.SES_REGION,
+    }));
+
+export type SesConfig = z.infer<typeof RawSesConfigSchema>;
+
 // export const SmtpVerifySchema = z.object({
 //     host: z.string(),
 //     port: z.coerce.number(),
@@ -83,9 +99,38 @@ export type SmtpVerifyInput = z.infer<typeof RawSmtpConfigSchema>;
 //     meta?: Record<string, unknown>;
 // };
 
+export type DnsType = "TXT" | "CNAME" | "MX";
+export type DnsRecord = {
+    type: DnsType;
+    name: string;
+    value: string;
+    ttl?: number;
+    priority?: number;
+    note?: string;
+};
+
+export type DomainIdentity = {
+    domain: string;
+    status: IdentityStatus;
+    dns: DnsRecord[];
+    meta?: Record<string, any>;
+};
+
+export type EmailIdentity = {
+    address: string;
+    ruleName: string;
+    ruleSetName: string;
+    created: boolean
+}
+
 export interface Mailer {
-    verify(): Promise<VerifyResult>;
+    verify(id: string, metaData?: Record<any, any>): Promise<VerifyResult>;
     sendTestEmail(to: string, opts?: { subject?: string; body?: string }): Promise<boolean>;
+    addDomain(domain: string, mailFrom?: string, incoming?: boolean): Promise<DomainIdentity>;
+    addEmail(email: string, metaData?: Record<any, any>): Promise<EmailIdentity>;
+    removeEmail(ruleSetName: string, ruleName: string): Promise<{removed: boolean}>;
+    removeDomain(domain: string): Promise<DomainIdentity>;
+    verifyDomain(domain: string): Promise<DomainIdentity>;
     // send?(mail: Mail): Promise<SendResult>;
     // close?(): Promise<void>;
 }

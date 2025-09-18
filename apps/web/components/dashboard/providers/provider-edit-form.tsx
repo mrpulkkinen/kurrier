@@ -7,19 +7,20 @@ import {
 	upsertProviderAccount,
 } from "@/lib/actions/dashboard";
 import {parseSecret} from "@/lib/utils";
+import {VerifyResult} from "@providers";
 
 function ProviderEditForm({
 	spec,
     onCompleted,
 	providerId,
-	decryptedSecrets,
+	decryptedSecret,
 }: {
 	spec: ProviderSpec;
-    onCompleted: () => void;
+    onCompleted?: (res: VerifyResult) => void;
 	providerId: string;
-	decryptedSecrets: FetchDecryptedSecretsResult;
+	decryptedSecret: FetchDecryptedSecretsResult[number];
 }) {
-	const decryptedValues = parseSecret(decryptedSecrets[0])
+	const decryptedValues = parseSecret(decryptedSecret)
 
 	const fields = [
 		{

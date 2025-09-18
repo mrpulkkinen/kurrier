@@ -3,43 +3,61 @@
 import * as React from "react";
 import {Container} from "@/components/common/containers";
 import {Card, CardContent, CardHeader,} from "@/components/ui/card";
-import {ActionIcon, Button, SegmentedControl} from "@mantine/core";
-import {Mail, Plus, Trash2} from "lucide-react";
+import {ActionIcon, Button, CopyButton, SegmentedControl, Tooltip} from "@mantine/core";
+import {
+    ArrowDownFromLine,
+    ArrowUpFromLine,
+    BadgeMinus,
+    CheckCircle,
+    Clock,
+    Eye,
+    Globe,
+    Mail,
+    Plus,
+    RefreshCw,
+    Trash2,
+    Verified
+} from "lucide-react";
 import {cn, parseSecret} from "@/lib/utils";
 import {useAppearance} from "@/components/providers/appearance-provider";
 import {modals} from "@mantine/modals";
 import {PROVIDER_CONFIG} from "@/components/dashboard/identities/PROVIDER_CONFIG";
-import DomainCard from "@/components/dashboard/identities/domain-card";
 import AddEmailIdentityForm from "@/components/dashboard/identities/add-email-identity-form";
 import {
-    deleteIdentity,
-    deleteSmtpAccount,
+    deleteDomainIdentity,
+    deleteEmailIdentity,
     FetchDecryptedSecretsResult,
     FetchUserIdentitiesResult,
-    testSendingEmail
+    testSendingEmail, verifyDomainIdentity
 } from "@/lib/actions/dashboard";
 import ProviderBadge from "@/components/dashboard/identities/provider-badge";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
-import {IconMail, IconMessage, IconMessage2, IconMessage2Bolt, IconSend} from "@tabler/icons-react";
-import {useState} from "react";
+import {
+    IconCheck,
+    IconCopy,
+    IconSend
+} from "@tabler/icons-react";
+import {useMemo, useState} from "react";
 import {toast, Toaster} from "sonner";
+import AddDomainIdentityForm from "@/components/dashboard/identities/add-domain-identity-form";
+import {FormState, IdentityStatusMeta, Providers} from "@schema";
+import EmailIdentityStatus from "@/components/dashboard/identities/email-identity-status";
 
 export type Status = "verified" | "pending" | "failed";
-export type ProviderHint = "ses" | "sendgrid" | "mailgun" | "postmark" | "smtp";
 
 export type DomainIdentity = {
     id: string;
-    value: string; // domain
+    value: string;
     status: Status;
-    providerHint?: ProviderHint;
+    providerHint?: Providers;
     note?: string;
 };
 
 export type EmailIdentity = {
     id: string;
-    value: string; // email
+    value: string;
     status: Status;
-    providerHint?: ProviderHint;
+    providerHint?: Providers;
     default?: boolean;
 };
 
@@ -132,12 +150,15 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
     providerAccounts: FetchDecryptedSecretsResult;
     providerOptions: { label: string; value: string }[];
 }) {
+
+    const userEmailIdentities = useMemo(() => userIdentities.filter(i => i.identities.kind === "email"), [userIdentities]);
+    const userDomainIdentities = useMemo(() => userIdentities.filter(i => i.identities.kind === "domain"), [userIdentities]);
+
     const [query, setQuery] = React.useState("");
     const [tab, setTab] = React.useState<"all" | "email" | "domain">("all");
 
     const [domains, setDomains] = React.useState(MOCK_DOMAINS);
     const [emails, setEmails] = React.useState(MOCK_EMAILS);
-    // const [emails, setEmails] = React.useState(userIdentities);
 
     const [verifyingId, setVerifyingId] = React.useState<string | null>(null);
     const [retryingId, setRetryingId] = React.useState<string | null>(null);
@@ -247,7 +268,34 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
             size: "lg",
             children: (
                 <div className="p-2">
-                    <AddEmailIdentityForm smtpAccounts={smtpAccounts} providerOptions={providerOptions} providerAccounts={providerAccounts} onCompleted={() => modals.close(openModalId)} />
+                    <AddEmailIdentityForm smtpAccounts={smtpAccounts}
+                                          providerOptions={providerOptions}
+                                          providerAccounts={providerAccounts}
+                                          userDomainIdentities={userDomainIdentities}
+                                          onCompleted={() => modals.close(openModalId)} />
+                </div>
+            ),
+        });
+
+    };
+
+    const openAddDomainForm = async () => {
+        const openModalId = modals.open({
+            title: (
+                <div className="font-semibold text-brand-foreground">Add Domain Identity</div>
+            ),
+            closeOnEscape: false,
+            closeOnClickOutside: false,
+            size: "lg",
+            children: (
+                <div className="p-2">
+                    <AddDomainIdentityForm providerOptions={providerOptions}
+                                          providerAccounts={providerAccounts}
+                                          onCompleted={(res: FormState) => {
+                                              console.log("AddDomainIdentityForm onCompleted", res)
+                                              modals.close(openModalId)
+                                          }}
+                    />
                 </div>
             ),
         });
@@ -267,12 +315,129 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
             labels: { confirm: "Delete", cancel: "Cancel" },
             confirmProps: { color: "red" },
             onConfirm: () => {
-                deleteIdentity(String(userIdentity.identities.id));
+                // deleteEmailIdentity(String(userIdentity.identities.id));
+                deleteEmailIdentity(userIdentity);
             },
         });
     };
 
 
+    const confirmDeleteDomainIdentity = async (userDomainIdentity: FetchUserIdentitiesResult[number]) => {
+        modals.openConfirmModal({
+            title: <div className={"font-semibold text-brand-foreground"}>Delete Identity</div>,
+            centered: true,
+            children: (
+                <div className="text-sm ">
+                    Are you sure you want to delete <b>{userDomainIdentity.identities.value}</b>? This
+                    will remove the identity permanently and unlink any associated secrets.
+                </div>
+            ),
+            labels: { confirm: "Delete", cancel: "Cancel" },
+            confirmProps: { color: "red" },
+            onConfirm: async () => {
+                const providerAccount = providerAccounts.find((acc) => {
+                    return acc.linkRow.providerId === userDomainIdentity.identities.providerId
+                })
+                const {error} = await deleteDomainIdentity(userDomainIdentity, providerAccount);
+                if (error){
+                    toast.error("Failed to delete domain identity", {
+                        description: error,
+                    })
+                }
+            },
+        });
+    };
+
+
+    const openShowDNS = async (userDomainIdentity: FetchUserIdentitiesResult[number]) => {
+        modals.open({
+            title: (
+                <div className="font-semibold text-brand-foreground">DNS Records for <strong>{userDomainIdentity.identities.value}</strong></div>
+            ),
+            closeOnEscape: false,
+            closeOnClickOutside: false,
+            size: "lg",
+            children: (
+                <div className="p-4 rounded-xl bg-muted/40 border border-muted-foreground/20 space-y-3">
+                    {/*<h4 className="text-sm font-medium text-muted-foreground">DNS Records</h4>*/}
+                    <div className="space-y-2">
+                        {userDomainIdentity?.identities?.dnsRecords?.map((record, index) => (
+                            <div
+                                key={index}
+                                className="rounded-lg bg-background/70 border border-muted-foreground/20 p-3 text-xs font-mono space-y-1"
+                            >
+                                <div className="flex justify-between items-center">
+                                    <span className="text-brand-foreground font-semibold">{record.type}</span>
+                                    {record.ttl && (
+                                        <span className="text-muted-foreground">TTL: {record.ttl}</span>
+                                    )}
+                                </div>
+
+                                {/* Name row with copy */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">Name:</span>
+                                    <code className="break-all">{record.name}</code>
+                                    <CopyButton value={record.name} timeout={2000}>
+                                        {({ copied, copy }) => (
+                                            <Tooltip label={copied ? "Copied!" : "Copy"} withArrow>
+                                                <ActionIcon
+                                                    color={copied ? "teal" : "gray"}
+                                                    onClick={copy}
+                                                    variant="subtle"
+                                                    size="sm"
+                                                >
+                                                    {copied ? (
+                                                        <IconCheck size={14} />
+                                                    ) : (
+                                                        <IconCopy size={14} />
+                                                    )}
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        )}
+                                    </CopyButton>
+                                </div>
+
+                                {/* Value row with copy */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">Value:</span>
+                                    <code className="break-all">{record.value}</code>
+                                    <CopyButton value={record.value} timeout={1000}>
+                                        {({ copied, copy }) => (
+                                            <Tooltip label={copied ? "Copied!" : "Copy"} withArrow>
+                                                <ActionIcon
+                                                    color={copied ? "teal" : "gray"}
+                                                    onClick={copy}
+                                                    variant="subtle"
+                                                    size="sm"
+                                                >
+                                                    {copied ? (
+                                                        <IconCheck size={14} />
+                                                    ) : (
+                                                        <IconCopy size={14} />
+                                                    )}
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        )}
+                                    </CopyButton>
+                                </div>
+
+                                {/*{record.priority && (*/}
+                                {/*    <div>*/}
+                                {/*        <span className="text-muted-foreground">Priority:</span>{" "}*/}
+                                {/*        {record.priority}*/}
+                                {/*    </div>*/}
+                                {/*)}*/}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ),
+        });
+
+    };
+
+
+    const [verifyingDomainIdentity, setVerifyingDomainIdentity] = useState(false);
 
     const {mode} = useAppearance()
 
@@ -331,26 +496,164 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
                     <div className="space-y-3">
                         <SectionHeader
                             title="Domains"
-                            count={filteredDomains.length}
+                            // count={filteredDomains.length}
+                            count={userDomainIdentities.length}
                             action={
-                                <Button variant="outline" size="sm" className="gap-2" aria-label="Add domain">
+                                <Button onClick={openAddDomainForm} variant="outline" size="sm" className="gap-2" aria-label="Add domain">
                                     <Plus className="size-4" />
                                     Add Domain
                                 </Button>
                             }
                         />
-                        {filteredDomains.length === 0 ? (
+                        {/*{filteredDomains.length === 0 ? (*/}
+                        {/*    <EmptyState kind="domain" query={query} />*/}
+                        {/*) : (*/}
+                        {/*    <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">*/}
+                        {/*        {filteredDomains.map((d) => (*/}
+                        {/*            <DomainCard*/}
+                        {/*                key={d.id}*/}
+                        {/*                d={d}*/}
+                        {/*                onVerify={verifyDomain}*/}
+                        {/*                verifying={verifyingId === d.id}*/}
+                        {/*            />*/}
+                        {/*        ))}*/}
+                        {/*    </div>*/}
+                        {/*)}*/}
+
+                        {userDomainIdentities.length === 0 ? (
                             <EmptyState kind="domain" query={query} />
                         ) : (
                             <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
-                                {filteredDomains.map((d) => (
-                                    <DomainCard
-                                        key={d.id}
-                                        d={d}
-                                        onVerify={verifyDomain}
-                                        verifying={verifyingId === d.id}
-                                    />
-                                ))}
+
+                                {userDomainIdentities.map((userDomainIdentity) => {
+                                    // const decrypted = parseSecret(smtpAccounts.find((s) => s.linkRow.accountId === userIdentity?.smtp_accounts?.id));
+                                    // const providerType =
+                                    //     userIdentity.smtp_accounts ? "smtp" : (userIdentity?.providers?.type as string);
+
+                                    return (
+                                        <div
+                                            key={userDomainIdentity.identities.id}
+                                            className="rounded-lg border mb-4 p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            {/* Left: identity + meta */}
+                                            <div className="min-w-0">
+                                                <div className="flex items-start gap-2">
+                                                    <Globe className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                                                    <div className="min-w-0">
+                                                        <div className="truncate font-semibold text-brand-foreground flex gap-4">
+                                                            {userDomainIdentity.identities.value}
+                                                            {userDomainIdentity.identities.status === "verified" ? <div className={"flex justify-center gap-1 items-center mx-2 text-teal-600 dark:text-brand-foreground font-medium text-xs"}>
+                                                                <Verified size={16} />
+                                                                <span>{IdentityStatusMeta[userDomainIdentity.identities.status].label}</span>
+
+                                                                {userDomainIdentity.identities.incomingDomain && <div className={"flex mx-2 gap-2"}>
+                                                                    <ArrowDownFromLine size={16} />
+                                                                    <span>Incoming</span>
+                                                                </div>}
+
+                                                                <ArrowUpFromLine size={16} />
+                                                                <span>Outgoing</span>
+
+                                                            </div> : <div className={"flex justify-center gap-1 items-center mx-2 text-red-600 dark:text-brand-foreground font-medium text-xs"}>
+                                                                <BadgeMinus size={16} />
+                                                                <span>{IdentityStatusMeta[userDomainIdentity.identities.status].label}</span>
+                                                            </div>}
+                                                        </div>
+
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                                                {userDomainIdentity.identities.status === "verified" ? <CheckCircle className="size-3.5" />: <Clock className="size-3.5" />}
+                                                                {IdentityStatusMeta[userDomainIdentity.identities.status].note}
+                                                            </span>
+
+                                                            {/*<Badge className={"bg-amber-100 text-amber-900 dark:bg-amber-300/20 dark:text-amber-200"}>*/}
+                                                            {/*    <Clock className="size-3.5" />*/}
+                                                            {/*    Pending DNS*/}
+                                                            {/*</Badge>*/}
+                                                            {/*<ProviderBadge providerType={providerType} />*/}
+                                                            {/*<IsVerifiedStatus verified={!!decrypted.sendVerified} statusName="Outgoing" />*/}
+                                                            {/*<IsVerifiedStatus verified={!!decrypted.receiveVerified} statusName="Incoming" />*/}
+                                                        </div>
+
+                                                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto my-2">
+                                                            <Button
+                                                                leftSection={<RefreshCw className="size-4" />}
+                                                                size="xs"
+                                                                className="flex-1 sm:flex-none"
+                                                                loading={verifyingDomainIdentity}
+                                                                // onClick={() => initTestEmail(userIdentity, decrypted)}
+                                                                onClick={async () => {
+                                                                    setVerifyingDomainIdentity(true)
+                                                                    const providerAccount = providerAccounts.find((acc) => {
+                                                                        return acc.linkRow.providerId === userDomainIdentity.identities.providerId
+                                                                    })
+                                                                    const response = await verifyDomainIdentity(userDomainIdentity, providerAccount)
+                                                                    if (response.status === "verified"){
+                                                                        toast.success("Domain verified successfully")
+                                                                    } else {
+                                                                        toast.error("Domain verification failed", {
+                                                                            description: "Please check your DNS records. If you've just added them, it may take some time for changes to propagate.",
+                                                                        });
+                                                                    }
+                                                                    setVerifyingDomainIdentity(false)
+                                                                }}
+                                                            >
+                                                                Verify
+                                                            </Button>
+
+                                                            <Button
+                                                                leftSection={<Eye className="size-4" />}
+                                                                size="xs"
+                                                                className="flex-1 sm:flex-none"
+                                                                loading={sendTesting}
+                                                                onClick={() => openShowDNS(userDomainIdentity)}
+                                                            >
+                                                                Show DNS Records
+                                                            </Button>
+
+                                                            <ActionIcon
+                                                                color="red"
+                                                                className="shrink-0"
+                                                                aria-label="Remove identity"
+                                                                onClick={() => confirmDeleteDomainIdentity(userDomainIdentity)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </ActionIcon>
+                                                        </div>
+
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Right: actions */}
+                                            {/*<div className="flex gap-2 sm:gap-3 w-full sm:w-auto">*/}
+                                            {/*    <Button*/}
+                                            {/*        leftSection={<IconSend size={16} />}*/}
+                                            {/*        size="xs"*/}
+                                            {/*        className="flex-1 sm:flex-none"*/}
+                                            {/*        loading={sendTesting}*/}
+                                            {/*        onClick={() => initTestEmail(userIdentity, decrypted)}*/}
+                                            {/*    >*/}
+                                            {/*        Send Test Email*/}
+                                            {/*    </Button>*/}
+
+                                            {/*    <ActionIcon*/}
+                                            {/*        color="red"*/}
+                                            {/*        className="shrink-0"*/}
+                                            {/*        aria-label="Remove identity"*/}
+                                            {/*        onClick={() => confirmDeleteIdentity(userIdentity)}*/}
+                                            {/*    >*/}
+                                            {/*        <Trash2 className="h-4 w-4" />*/}
+                                            {/*    </ActionIcon>*/}
+                                            {/*</div>*/}
+                                        </div>
+                                    );
+                                })}
+
+
+
+
                             </div>
                         )}
                     </div>
@@ -363,7 +666,7 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
                         <SectionHeader
                             title="Email Addresses"
                             // count={filteredEmails.length}
-                            count={userIdentities.length}
+                            count={userEmailIdentities.length}
                             action={
                                 <Button onClick={openAddEmailForm} variant="outline" size="sm" className="gap-2" aria-label="Add email">
                                     <Plus className="size-4" />
@@ -374,15 +677,21 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
 
 
                         <div className="my-8">
-                            {userIdentities.map((userIdentity) => {
-                                const decrypted = parseSecret(smtpAccounts.find((s) => s.linkRow.accountId === userIdentity?.smtp_accounts?.id));
-                                const providerType =
-                                    userIdentity.smtp_accounts ? "smtp" : (userIdentity?.providers?.type as string);
+                            {userEmailIdentities.map((userIdentity) => {
+                                const providerType = userIdentity.smtp_accounts ? "smtp" : (userIdentity?.providers?.type as string);
+
+                                let decrypted = {} as Record<string, any>
+                                if (userIdentity?.providers?.id){
+                                    decrypted = parseSecret(providerAccounts.find((s) => s.linkRow.providerId === userIdentity?.providers?.id))
+                                } else if (userIdentity?.smtp_accounts?.id){
+                                    decrypted = parseSecret(smtpAccounts.find((s) => s.linkRow.accountId === userIdentity?.smtp_accounts?.id))
+                                }
+
 
                                 return (
                                     <div
                                         key={userIdentity.identities.id}
-                                        className="rounded-lg border p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                                        className="rounded-lg border mb-4 p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                                     >
                                         {/* Left: identity + meta */}
                                         <div className="min-w-0">
@@ -395,8 +704,11 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
 
                                                     <div className="mt-2 flex flex-wrap items-center gap-2">
                                                         <ProviderBadge providerType={providerType} />
-                                                        <IsVerifiedStatus verified={!!decrypted.sendVerified} statusName="Outgoing" />
-                                                        <IsVerifiedStatus verified={!!decrypted.receiveVerified} statusName="Incoming" />
+                                                        {userIdentity.smtp_accounts ? <>
+                                                            <IsVerifiedStatus verified={!!decrypted.sendVerified} statusName="Outgoing" />
+                                                            <IsVerifiedStatus verified={!!decrypted.receiveVerified} statusName="Incoming" />
+                                                        </> : <EmailIdentityStatus userIdentity={userIdentity}/>}
+
                                                     </div>
                                                 </div>
                                             </div>
@@ -428,58 +740,7 @@ export default function MailIdentities({userIdentities, smtpAccounts, providerAc
                             })}
                         </div>
 
-                        {/*<div className={"my-8"}>*/}
-                        {/*    {userIdentities.map((userIdentity) => {*/}
-                        {/*        const secret = smtpAccounts.find(s => s.linkRow.accountId === userIdentity?.smtp_accounts?.id)?.vault?.decrypted_secret*/}
-                        {/*        const decrypted = secret ? JSON.parse(secret) : {}*/}
-                        {/*        return <div className="rounded-sm border p-3 sm:p-4 flex justify-between mt-8" key={userIdentity.identities.id}>*/}
-                        {/*            <div className={"flex flex-col gap-2"}>*/}
-                        {/*                <div className={'flex items-stretch'}>*/}
-                        {/*                    <Mail className="size-4 shrink-0 text-muted-foreground mt-1" />*/}
-                        {/*                    <div className="min-w-0 mx-2 font-semibold text-brand-foreground">{userIdentity.identities.value}</div>*/}
-                        {/*                </div>*/}
-                        {/*                <div className={"flex gap-2"}>*/}
-                        {/*                    <ProviderBadge providerType={userIdentity.smtp_accounts ? "smtp" : userIdentity?.providers?.type as string} />*/}
-                        {/*                    <IsVerifiedStatus verified={decrypted.sendVerified} statusName={"Outgoing"} />*/}
-                        {/*                    <IsVerifiedStatus verified={decrypted.sendVerified} statusName={"Incoming"} />*/}
-                        {/*                </div>*/}
-                        {/*            </div>*/}
-                        {/*            <div className={"flex gap-2"}>*/}
-                        {/*                <Button leftSection={<IconSend size={16} />} size={'xs'}>Send Test Email</Button>*/}
-                        {/*                <ActionIcon*/}
-                        {/*                    color="red"*/}
-                        {/*                    // loading={true}*/}
-                        {/*                    className="gap-1.5"*/}
-                        {/*                    // onClick={confirmDelete}*/}
-                        {/*                >*/}
-                        {/*                    <Trash2 className="h-3 w-3" />*/}
-                        {/*                </ActionIcon>*/}
-                        {/*            </div>*/}
-                        {/*        </div>*/}
-                        {/*    })}*/}
 
-                        {/*</div>*/}
-
-                        {/*{filteredEmails.length === 0 ? (*/}
-                        {/*    <EmptyState kind="email" query={query} />*/}
-                        {/*) : (*/}
-                        {/*    <Card className="shadow-none">*/}
-                        {/*        <CardContent>*/}
-                        {/*            */}
-
-                        {/*            /!*{filteredEmails.map((e) => (*!/*/}
-                        {/*            /!*    <EmailRow*!/*/}
-                        {/*            /!*        key={e.id}*!/*/}
-                        {/*            /!*        e={e}*!/*/}
-                        {/*            /!*        onRetry={retryEmail}*!/*/}
-                        {/*            /!*        onMakeDefault={makeDefault}*!/*/}
-                        {/*            /!*        onRemove={removeEmail}*!/*/}
-                        {/*            /!*        retrying={retryingId === e.id}*!/*/}
-                        {/*            /!*    />*!/*/}
-                        {/*            /!*))}*!/*/}
-                        {/*        </CardContent>*/}
-                        {/*    </Card>*/}
-                        {/*)}*/}
                     </div>
                 </CardContent>
             </Card>

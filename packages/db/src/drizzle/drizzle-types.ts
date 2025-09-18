@@ -18,8 +18,11 @@ export type SMTPAccountUpdate = Partial<SMTPAccountCreate>;
 
 export type IdentityEntity = typeof identities.$inferSelect;
 export type IdentityUpdate = Partial<IdentityCreate>;
+export type IdentityCreate = typeof identities.$inferInsert;
 export const IdentityInsertSchema = createInsertSchema(identities);
-export type IdentityCreate = z.infer<typeof IdentityInsertSchema>;
+export type IdentityInsert = z.infer<typeof IdentityInsertSchema>;
+
+// export type IdentityCreate = z.infer<typeof IdentityInsertSchema>;
 
 
 export type DecryptedEntity = typeof decryptedSecrets.$inferSelect;

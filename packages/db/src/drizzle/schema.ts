@@ -5,12 +5,13 @@ import {
     timestamp,
     pgPolicy,
     pgEnum,
-    uniqueIndex, boolean,
+    uniqueIndex, boolean, jsonb,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
 import { identityStatusList, identityTypesList, providersList } from "@schema";
+import {DnsRecord} from "@providers";
 
 export const ProviderKindEnum = pgEnum("provider_kind", providersList);
 
@@ -65,7 +66,9 @@ export const providers = pgTable(
 			.notNull()
 			.default(sql`auth.uid()`),
 		type: ProviderKindEnum("type").notNull(),
-		createdAt: timestamp("created_at", { withTimezone: true })
+        metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
+
+        createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -189,7 +192,6 @@ export const smtpAccounts = pgTable(
 			.references(() => users.id)
 			.notNull()
 			.default(sql`auth.uid()`),
-		// label: varchar("label", { length: 120 }).notNull(), // “Work SMTP”, “Personal”, etc.
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -305,21 +307,18 @@ export const identities = pgTable(
 
         kind: IdentityKindEnum("kind").notNull(),
         value: text("value").notNull(),            // domain or email address
-        // displayName: text("display_name"),         // optional: “From name” for email identities
+        incomingDomain: boolean("incoming_domain").default(false),
 
-        // Which provider family the account belongs to (e.g. "smtp", "ses")
-        // providerType: ProviderKindEnum("provider_type").notNull(),
+        domainIdentityId: uuid("domain_identity_id")
+            .references(() => identities.id, { onDelete: "set null" })
+            .default(null),
 
-        // Exactly one of these should be set:
+        dnsRecords: jsonb("dns_records").$type<DnsRecord[] | null>().default(null),
+        metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
         providerId: uuid("provider_id").references(() => providers.id),      // SES/SendGrid/Mailgun/Postmark
         smtpAccountId: uuid("smtp_account_id").references(() => smtpAccounts.id), // Custom SMTP
 
         status: IdentityStatusEnum("status").notNull().default("unverified"),
-        // lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
-        // lastError: text("last_error"),
-
-        // isDefault: boolean("is_default").notNull().default(false), // relevant for email identities
-
         createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
         updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     },

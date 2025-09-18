@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {
     deleteSmtpAccount,
-    FetchDecryptedSecretsResultRow, testSmtpAccount,
+    FetchDecryptedSecretsResultRow, verifySmtpAccount,
 } from "@/lib/actions/dashboard";
 import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
@@ -29,10 +29,11 @@ function SmtpAccountCard({
 				<div className="p-2">
 					<NewSmtpAccountForm
 						smtpSecret={smtpSecret}
-						onCompleted={(res: VerifyResult) => {
-                            initiateSMTPTest(res)
-                            modals.close(openModalId)
-                        }}
+                        onCompleted={() => modals.close(openModalId)}
+						// onCompleted={(res: VerifyResult) => {
+                        //     initiateSMTPTest(res)
+                        //     modals.close(openModalId)
+                        // }}
 					/>
 				</div>
 			),
@@ -60,11 +61,13 @@ function SmtpAccountCard({
     const [testing, setTesting] = useState(false);
 
 
-    const initiateSMTPTest = async (verifyResponse?: VerifyResult) => {
+    // const initiateSMTPTest = async (verifyResponse?: VerifyResult) => {
+    const initiateVerifySMTP = async () => {
         setTesting(true);
 
         try {
-            const res = verifyResponse ? verifyResponse : await testSmtpAccount(smtpSecret);
+            // const res = verifyResponse ? verifyResponse : await testSmtpAccount(smtpSecret);
+            const res = await verifySmtpAccount(smtpSecret);
 
             if (res.meta?.send) {
                 toast.success("SMTP connection verified", {
@@ -149,7 +152,8 @@ function SmtpAccountCard({
                         <Button className={"my-2"}
                                 leftSection={<Play className="size-4" />}
                                 loading={testing}
-                                onClick={() => initiateSMTPTest()} size={"xs"} variant={"filled"}>Test Connection</Button>
+                                // onClick={() => initiateSMTPTest()} size={"xs"} variant={"filled"}>Verify Connection</Button>
+                                onClick={initiateVerifySMTP} size={"xs"} variant={"filled"}>Verify Connection</Button>
 					</div>
 
 					<div className="flex gap-2">

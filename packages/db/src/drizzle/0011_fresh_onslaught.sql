@@ -1,0 +1,1 @@
+ALTER TABLE "providers" ADD COLUMN "meta" jsonb DEFAULT 'null'::jsonb;

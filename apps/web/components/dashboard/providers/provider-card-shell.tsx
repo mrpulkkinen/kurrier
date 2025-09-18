@@ -17,7 +17,7 @@ export default async function ProviderCardShell({
 }: Props) {
 	const userProvider = userProviders.find((p) => p.type === spec.key);
 
-	const decryptedSecrets = await fetchDecryptedSecrets({
+	const [decryptedSecret] = await fetchDecryptedSecrets({
 		linkTable: providerSecrets,
 		foreignCol: providerSecrets.providerId,
 		secretIdCol: providerSecrets.secretId,
@@ -29,7 +29,7 @@ export default async function ProviderCardShell({
 			<ProviderCard
 				spec={spec}
 				userProvider={userProvider}
-				decryptedSecrets={decryptedSecrets}
+                decryptedSecret={decryptedSecret}
 			/>
 		);
 	} else {

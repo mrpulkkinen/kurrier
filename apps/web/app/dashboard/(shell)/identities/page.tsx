@@ -24,15 +24,20 @@ async function Page() {
 
     const options = []
     for (const providerAccount of userProviderAccounts){
-        const provider = await getProviderById(String(providerAccount.linkRow.providerId))
-        const providerName = ProviderLabels[provider?.type || "unknown"] || "Unknown Provider"
-        if (provider) {
-            options.push({label: providerName, value: `provider-${String(providerAccount.linkRow.id)}`} )
+        const secret = parseSecret(providerAccount)
+        if (secret.verified){
+            const provider = await getProviderById(String(providerAccount.linkRow.providerId))
+            const providerName = ProviderLabels[provider?.type || "unknown"] || "Unknown Provider"
+            if (provider) {
+                options.push({label: providerName, value: `provider-${String(providerAccount.linkRow.id)}`} )
+            }
         }
     }
     for (const smtpAccount of userSmtpAccounts){
-        const decrypted = parseSecret(smtpAccount)
-        options.push({label: `SMTP Account (${decrypted.label})`, value: `smtp-${String(smtpAccount.linkRow.id)}`})
+        const secret = parseSecret(smtpAccount)
+        if (secret.sendVerified || secret.receiveVerified){
+            options.push({label: `SMTP Account (${secret.label})`, value: `smtp-${String(smtpAccount.linkRow.id)}`})
+        }
     }
 
     return <>
