@@ -6,21 +6,21 @@ import {
 	FetchDecryptedSecretsResult,
 	upsertProviderAccount,
 } from "@/lib/actions/dashboard";
-import {parseSecret} from "@/lib/utils";
-import {VerifyResult} from "@providers";
+import { parseSecret } from "@/lib/utils";
+import { VerifyResult } from "@providers";
 
 function ProviderEditForm({
 	spec,
-    onCompleted,
+	onCompleted,
 	providerId,
 	decryptedSecret,
 }: {
 	spec: ProviderSpec;
-    onCompleted?: (res: VerifyResult) => void;
+	onCompleted?: (res: VerifyResult) => void;
 	providerId: string;
 	decryptedSecret: FetchDecryptedSecretsResult[number];
 }) {
-	const decryptedValues = parseSecret(decryptedSecret)
+	const decryptedValues = parseSecret(decryptedSecret);
 
 	const fields = [
 		{
@@ -49,7 +49,13 @@ function ProviderEditForm({
 		})),
 	];
 
-	return <ReusableForm fields={fields} onSuccess={onCompleted} action={upsertProviderAccount} />;
+	return (
+		<ReusableForm
+			fields={fields}
+			onSuccess={onCompleted}
+			action={upsertProviderAccount}
+		/>
+	);
 }
 
 export default ProviderEditForm;

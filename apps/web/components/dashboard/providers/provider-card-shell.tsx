@@ -29,7 +29,7 @@ export default async function ProviderCardShell({
 			<ProviderCard
 				spec={spec}
 				userProvider={userProvider}
-                decryptedSecret={decryptedSecret}
+				decryptedSecret={decryptedSecret}
 			/>
 		);
 	} else {

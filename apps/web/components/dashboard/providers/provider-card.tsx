@@ -7,21 +7,22 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {Edit, ExternalLink, Globe, Play} from "lucide-react";
+import { Edit, ExternalLink, Globe, Play } from "lucide-react";
 // import { Button } from "@/components/ui/button";
 import * as React from "react";
 import {
-    FetchDecryptedSecretsResult,
-    SyncProvidersRow, verifyProviderAccount,
+	FetchDecryptedSecretsResult,
+	SyncProvidersRow,
+	verifyProviderAccount,
 } from "@/lib/actions/dashboard";
 import ProviderEditForm from "@/components/dashboard/providers/provider-edit-form";
-import {modals} from "@mantine/modals";
+import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
-import {Button} from "@mantine/core";
-import {useMemo, useState} from "react";
-import {VerifyResult} from "@providers";
-import {toast} from "sonner";
-import {parseSecret} from "@/lib/utils";
+import { Button } from "@mantine/core";
+import { useMemo, useState } from "react";
+import { VerifyResult } from "@providers";
+import { toast } from "sonner";
+import { parseSecret } from "@/lib/utils";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
 
 export default function ProviderCard({
@@ -33,77 +34,89 @@ export default function ProviderCard({
 	userProvider: SyncProvidersRow;
 	decryptedSecret: FetchDecryptedSecretsResult[number];
 }) {
+	const decryptedValues = useMemo(() => {
+		return parseSecret(decryptedSecret);
+	}, [decryptedSecret]);
 
-    const decryptedValues = useMemo(() => {
-        return parseSecret(decryptedSecret)
-    }, [decryptedSecret])
+	const openEdit = () => {
+		const openModalId = modals.open({
+			title: (
+				<div className="font-semibold text-brand-foreground">
+					Edit {spec.name} Account
+				</div>
+			),
+			size: "lg",
+			children: (
+				<CardContent className={"my-6"}>
+					<div className="space-y-3">
+						<input
+							type={"hidden"}
+							name={"providerId"}
+							value={userProvider.id}
+						/>
+						<ProviderEditForm
+							spec={spec}
+							onCompleted={() => modals.close(openModalId)}
+							// onCompleted={(res: VerifyResult) => {
+							//     console.log("res", res)
+							//     // initTestAccount(res)
+							//     modals.close(openModalId)
+							// }}
+							providerId={userProvider.id}
+							decryptedSecret={decryptedSecret}
+						/>
+					</div>
+				</CardContent>
+			),
+		});
+	};
 
-    const openEdit = () => {
-        const openModalId = modals.open({
-            title: (
-                <div className="font-semibold text-brand-foreground">Edit {spec.name} Account</div>
-            ),
-            size: "lg",
-            children: (
-                <CardContent className={"my-6"}>
-                    <div className="space-y-3">
-                        <input type={"hidden"} name={"providerId"} value={userProvider.id} />
-                        <ProviderEditForm
-                            spec={spec}
-                            onCompleted={() => modals.close(openModalId)}
-                            // onCompleted={(res: VerifyResult) => {
-                            //     console.log("res", res)
-                            //     // initTestAccount(res)
-                            //     modals.close(openModalId)
-                            // }}
-                            providerId={userProvider.id}
-                            decryptedSecret={decryptedSecret}
-                        />
-                    </div>
-                </CardContent>
-            ),
-        });
-    };
+	const [testing, setTesting] = useState(false);
+	const initVerifyAccount = async () => {
+		setTesting(true);
+		try {
+			// const res = await testProviderAccount(userProvider.type, decryptedSecret);
+			const res = await verifyProviderAccount(
+				userProvider.type,
+				decryptedSecret,
+			);
 
-    const [testing, setTesting] = useState(false);
-    const initVerifyAccount = async () => {
-        setTesting(true);
-        try {
-            // const res = await testProviderAccount(userProvider.type, decryptedSecret);
-            const res = await verifyProviderAccount(userProvider.type, decryptedSecret);
-
-            if (res.ok && res.meta?.send) {
-                toast.success(`${userProvider.type.toUpperCase()} connection verified`, {
-                    description: (() => {
-                        switch (userProvider.type) {
-                            case "ses":
-                                return "SES credentials are valid and the account is reachable.";
-                            case "postmark":
-                                return "Postmark credentials are valid and the API is reachable.";
-                            case "sendgrid":
-                                return "SendGrid API key is valid and sending is enabled.";
-                            case "mailgun":
-                                return "Mailgun credentials are valid and the account is reachable.";
-                            default:
-                                return "Outgoing mail server is reachable and credentials are valid.";
-                        }
-                    })(),
-                });
-            } else {
-                toast.error(`${userProvider.type.toUpperCase()} verification failed`, {
-                    description:
-                        String(res.meta?.response ?? res.message) ||
-                        "Could not connect with the provided credentials.",
-                });
-            }
-        } catch (err: any) {
-            toast.error("Verification error", {
-                description: err?.message ?? "Unexpected error while testing the account.",
-            });
-        } finally {
-            setTesting(false);
-        }
-    };
+			if (res.ok && res.meta?.send) {
+				toast.success(
+					`${userProvider.type.toUpperCase()} connection verified`,
+					{
+						description: (() => {
+							switch (userProvider.type) {
+								case "ses":
+									return "SES credentials are valid and the account is reachable.";
+								case "postmark":
+									return "Postmark credentials are valid and the API is reachable.";
+								case "sendgrid":
+									return "SendGrid API key is valid and sending is enabled.";
+								case "mailgun":
+									return "Mailgun credentials are valid and the account is reachable.";
+								default:
+									return "Outgoing mail server is reachable and credentials are valid.";
+							}
+						})(),
+					},
+				);
+			} else {
+				toast.error(`${userProvider.type.toUpperCase()} verification failed`, {
+					description:
+						String(res.meta?.response ?? res.message) ||
+						"Could not connect with the provided credentials.",
+				});
+			}
+		} catch (err: any) {
+			toast.error("Verification error", {
+				description:
+					err?.message ?? "Unexpected error while testing the account.",
+			});
+		} finally {
+			setTesting(false);
+		}
+	};
 
 	return (
 		<Card className="shadow-none relative">
@@ -129,38 +142,38 @@ export default function ProviderCard({
 							<Button
 								variant="outline"
 								// asChild
-                                component={"a"}
-                                size={"xs"}
-                                href={spec.docsUrl}
-                                target="_blank"
+								component={"a"}
+								size={"xs"}
+								href={spec.docsUrl}
+								target="_blank"
 								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm"
-                                leftSection={<ExternalLink className="size-4" />}
+								leftSection={<ExternalLink className="size-4" />}
 							>
-                                Docs
+								Docs
 							</Button>
 
 							<Button
 								// onClick={() => initTestAccount()}
 								onClick={initVerifyAccount}
-                                loading={testing}
-                                size={"xs"}
-                                leftSection={<Play className="size-4" />}
+								loading={testing}
+								size={"xs"}
+								leftSection={<Play className="size-4" />}
 								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
 							>
 								Verify Connection
 							</Button>
-                            <Button
-                                onClick={openEdit}
-                                size={"xs"}
-                                leftSection={<Edit className="size-4" />}
-                                // className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
-                            >
-                                Edit
-                            </Button>
+							<Button
+								onClick={openEdit}
+								size={"xs"}
+								leftSection={<Edit className="size-4" />}
+								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
+							>
+								Edit
+							</Button>
 						</CardAction>
 					</div>
 				</div>
-                <IsVerifiedStatus verified={decryptedValues.verified} statusName={""} />
+				<IsVerifiedStatus verified={decryptedValues.verified} statusName={""} />
 			</CardHeader>
 
 			{/*<CardContent className="space-y-4 mb-16">*/}

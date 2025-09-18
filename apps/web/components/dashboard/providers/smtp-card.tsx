@@ -14,7 +14,7 @@ import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
 import { FetchDecryptedSecretsResult } from "@/lib/actions/dashboard";
 import SmtpAccountCard from "@/components/dashboard/providers/smtp-account-card";
-import {Button} from "@mantine/core";
+import { Button } from "@mantine/core";
 
 export default function SMTPCard({
 	smtpSecrets,
@@ -24,7 +24,9 @@ export default function SMTPCard({
 	const openAddModal = () => {
 		const openModalId = modals.open({
 			title: (
-				<div className="font-semibold text-brand-foreground">Add SMTP Account</div>
+				<div className="font-semibold text-brand-foreground">
+					Add SMTP Account
+				</div>
 			),
 			closeOnEscape: false,
 			closeOnClickOutside: false,

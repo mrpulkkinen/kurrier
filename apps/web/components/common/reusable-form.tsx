@@ -40,7 +40,7 @@ function SelectField({
 	defaultValue,
 	disabled,
 	className,
-    onChange
+	onChange,
 }: {
 	name: string;
 	placeholder?: string;
@@ -48,7 +48,7 @@ function SelectField({
 	defaultValue?: string;
 	disabled?: boolean;
 	className?: string;
-    onChange?: (value: string) => void;
+	onChange?: (value: string) => void;
 }) {
 	const [val, setVal] = React.useState<string>(defaultValue ?? "");
 	return (
@@ -61,9 +61,9 @@ function SelectField({
 				data={options.map((o) => ({ value: o.value, label: o.label }))}
 				value={val || null}
 				onChange={(v) => {
-                    setVal(v ?? "")
-                    onChange && onChange(v ?? "");
-                }}
+					setVal(v ?? "");
+					onChange && onChange(v ?? "");
+				}}
 				disabled={disabled}
 				searchable={false}
 				allowDeselect={false}

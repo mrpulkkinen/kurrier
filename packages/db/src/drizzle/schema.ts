@@ -1,24 +1,24 @@
 import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    pgPolicy,
-    pgEnum,
-    uniqueIndex, boolean, jsonb,
+	pgTable,
+	uuid,
+	text,
+	timestamp,
+	pgPolicy,
+	pgEnum,
+	uniqueIndex,
+	boolean,
+	jsonb,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
 import { identityStatusList, identityTypesList, providersList } from "@schema";
-import {DnsRecord} from "@providers";
+import { DnsRecord } from "@providers";
 
 export const ProviderKindEnum = pgEnum("provider_kind", providersList);
 
 export const IdentityKindEnum = pgEnum("identity_kind", identityTypesList);
 export const IdentityStatusEnum = pgEnum("identity_status", identityStatusList);
-
-
 
 export const secretsMeta = pgTable(
 	"secrets_meta",
@@ -66,9 +66,9 @@ export const providers = pgTable(
 			.notNull()
 			.default(sql`auth.uid()`),
 		type: ProviderKindEnum("type").notNull(),
-        metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
+		metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
 
-        createdAt: timestamp("created_at", { withTimezone: true })
+		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -294,62 +294,65 @@ export const smtpAccountSecrets = pgTable(
 	],
 ).enableRLS();
 
-
 export const identities = pgTable(
-    "identities",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
+	"identities",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
 
-        ownerId: uuid("owner_id")
-            .references(() => users.id)
-            .notNull()
-            .default(sql`auth.uid()`),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
 
-        kind: IdentityKindEnum("kind").notNull(),
-        value: text("value").notNull(),            // domain or email address
-        incomingDomain: boolean("incoming_domain").default(false),
+		kind: IdentityKindEnum("kind").notNull(),
+		value: text("value").notNull(), // domain or email address
+		incomingDomain: boolean("incoming_domain").default(false),
 
-        domainIdentityId: uuid("domain_identity_id")
-            .references(() => identities.id, { onDelete: "set null" })
-            .default(null),
+		domainIdentityId: uuid("domain_identity_id")
+			.references(() => identities.id, { onDelete: "set null" })
+			.default(null),
 
-        dnsRecords: jsonb("dns_records").$type<DnsRecord[] | null>().default(null),
-        metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
-        providerId: uuid("provider_id").references(() => providers.id),      // SES/SendGrid/Mailgun/Postmark
-        smtpAccountId: uuid("smtp_account_id").references(() => smtpAccounts.id), // Custom SMTP
+		dnsRecords: jsonb("dns_records").$type<DnsRecord[] | null>().default(null),
+		metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
+		providerId: uuid("provider_id").references(() => providers.id), // SES/SendGrid/Mailgun/Postmark
+		smtpAccountId: uuid("smtp_account_id").references(() => smtpAccounts.id), // Custom SMTP
 
-        status: IdentityStatusEnum("status").notNull().default("unverified"),
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-    },
-    (t) => [
-        // avoid duplicates per user for same kind+value
-        uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
-        // uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
+		status: IdentityStatusEnum("status").notNull().default("unverified"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		// avoid duplicates per user for same kind+value
+		uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
+		// uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
 
-        // RLS: standard owner controls
-        pgPolicy("identities_select_own", {
-            for: "select",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("identities_insert_own", {
-            for: "insert",
-            to: authenticatedRole,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("identities_update_own", {
-            for: "update",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("identities_delete_own", {
-            for: "delete",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-    ],
+		// RLS: standard owner controls
+		pgPolicy("identities_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("identities_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("identities_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("identities_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
 ).enableRLS();
 
 // export const emailsTable = pgTable("emails", {

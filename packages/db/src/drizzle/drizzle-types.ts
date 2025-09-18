@@ -1,8 +1,7 @@
 import { providers, smtpAccounts, identities } from "./schema";
 import { decryptedSecrets } from "./supabase-schema";
-import {z} from "zod";
+import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-
 
 // export type EmailEntity = typeof emailsTable.$inferSelect;
 // export type EmailCreate = typeof emailsTable.$inferInsert;
@@ -24,14 +23,13 @@ export type IdentityInsert = z.infer<typeof IdentityInsertSchema>;
 
 // export type IdentityCreate = z.infer<typeof IdentityInsertSchema>;
 
-
 export type DecryptedEntity = typeof decryptedSecrets.$inferSelect;
 
 export const ProviderSchema = createSelectSchema(providers);
 export const SMTPAccountSchema = createSelectSchema(smtpAccounts);
 
 export const CommonProviderEntitySchema = z.union([
-    ProviderSchema,
-    SMTPAccountSchema,
+	ProviderSchema,
+	SMTPAccountSchema,
 ]);
 export type CommonProviderEntity = z.infer<typeof CommonProviderEntitySchema>;

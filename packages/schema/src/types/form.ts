@@ -36,8 +36,8 @@ export type FormState<TData = unknown> = {
 };
 
 export type GenericResult<T = void> = {
-    data?: T;
-    error?: string;
-    success?: boolean;
-    message?: string;
+	data?: T;
+	error?: string;
+	success?: boolean;
+	message?: string;
 };

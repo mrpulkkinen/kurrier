@@ -1,6 +1,6 @@
 // packages/providers/mail/map.ts
 import { SMTP_SPEC } from "@schema";
-import {SmtpVerifyInput} from "../core";
+import { SmtpVerifyInput } from "../core";
 // import type { SmtpVerifyInput } from "./smtp-schema";
 
 /**
@@ -8,7 +8,7 @@ import {SmtpVerifyInput} from "../core";
  */
 const truthy = new Set(["true", "1", "yes", "y", "on", "t"]);
 const toBool = (v: unknown) =>
-    typeof v === "boolean" ? v : truthy.has(String(v ?? "").toLowerCase());
+	typeof v === "boolean" ? v : truthy.has(String(v ?? "").toLowerCase());
 
 /**
  * Given any env-like object (vault JSON, form data map, process.env),

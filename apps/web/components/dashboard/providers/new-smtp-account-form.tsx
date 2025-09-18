@@ -7,8 +7,8 @@ import {
 import { SMTP_SPEC } from "@schema";
 import { ReusableForm } from "@/components/common/reusable-form";
 import { ulid } from "ulid";
-import {VerifyResult} from "@providers";
-import {parseSecret} from "@/lib/utils";
+import { VerifyResult } from "@providers";
+import { parseSecret } from "@/lib/utils";
 
 function NewSmtpAccountForm({
 	smtpSecret,
@@ -17,7 +17,7 @@ function NewSmtpAccountForm({
 	smtpSecret?: FetchDecryptedSecretsResultRow;
 	onCompleted?: (res: VerifyResult) => void;
 }) {
-	const parsedVaultValues = parseSecret(smtpSecret)
+	const parsedVaultValues = parseSecret(smtpSecret);
 
 	const fields = [
 		{
@@ -54,46 +54,50 @@ function NewSmtpAccountForm({
 			},
 		},
 
-		...SMTP_SPEC.requiredEnv.map((rowKey: string) => (
-            rowKey === "SMTP_SECURE" || rowKey === "SMTP_POOL" ? {
-                name: `required.${rowKey}`,
-                label: (
-                    <code className="rounded bg-muted/50 px-2 py-1 text-xs">
-                        {rowKey}
-                    </code>
-                ),
-                kind: "select" as const,
-                options: [
-                    { label: "TRUE", value: "true" },
-                    { label: "FALSE", value: "false" },
-                ],
-                required: false,
-                wrapperClasses: "col-span-12 sm:col-span-6",
-                props: {
-                    autoComplete: "off",
-                    required: true,
-                    defaultValue: parsedVaultValues
-                        ? (parsedVaultValues[rowKey] ?? "false")
-                        : "false",
-                    className: "w-full",
-                },
-
-            } : {
-			name: `required.${rowKey}`,
-			label: (
-				<code className="rounded bg-muted/50 px-2 py-1 text-xs">{rowKey}</code>
-			),
-			required: true,
-			wrapperClasses: "col-span-12 sm:col-span-6",
-			props: {
-				autoComplete: "off",
-				required: true,
-				// type: /PASSWORD/.test(rowKey) ? "password" : "text",
-				defaultValue: parsedVaultValues
-					? (parsedVaultValues[rowKey] ?? "")
-					: "",
-			},
-		})),
+		...SMTP_SPEC.requiredEnv.map((rowKey: string) =>
+			rowKey === "SMTP_SECURE" || rowKey === "SMTP_POOL"
+				? {
+						name: `required.${rowKey}`,
+						label: (
+							<code className="rounded bg-muted/50 px-2 py-1 text-xs">
+								{rowKey}
+							</code>
+						),
+						kind: "select" as const,
+						options: [
+							{ label: "TRUE", value: "true" },
+							{ label: "FALSE", value: "false" },
+						],
+						required: false,
+						wrapperClasses: "col-span-12 sm:col-span-6",
+						props: {
+							autoComplete: "off",
+							required: true,
+							defaultValue: parsedVaultValues
+								? (parsedVaultValues[rowKey] ?? "false")
+								: "false",
+							className: "w-full",
+						},
+					}
+				: {
+						name: `required.${rowKey}`,
+						label: (
+							<code className="rounded bg-muted/50 px-2 py-1 text-xs">
+								{rowKey}
+							</code>
+						),
+						required: true,
+						wrapperClasses: "col-span-12 sm:col-span-6",
+						props: {
+							autoComplete: "off",
+							required: true,
+							// type: /PASSWORD/.test(rowKey) ? "password" : "text",
+							defaultValue: parsedVaultValues
+								? (parsedVaultValues[rowKey] ?? "")
+								: "",
+						},
+					},
+		),
 
 		{
 			el: (

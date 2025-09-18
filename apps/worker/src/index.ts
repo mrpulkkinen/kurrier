@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import snsRoutes from './routes/webhooks/sns.js';
+import snsRoutes from "./routes/webhooks/sns.js";
 
 const app = new Hono();
 
@@ -9,7 +9,7 @@ const app = new Hono();
 // app.use('*', rawBodyMiddleware());        // gives c.get('rawBody')
 // app.use('*', idempotencyMiddleware());    // dedupe via header + Redis/DB
 
-app.route('/hooks/aws/sns', snsRoutes)
+app.route("/hooks/aws/sns", snsRoutes);
 
 // app.get("/", (c) => {
 // 	return c.text("Hello Hono!");
