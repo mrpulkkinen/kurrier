@@ -60,10 +60,12 @@ function SmtpAccountCard({
 			labels: { confirm: "Delete", cancel: "Cancel" },
 			confirmProps: { color: "red" },
 			onConfirm: async () => {
-				const {success} = await deleteSmtpAccount(String(smtpSecret?.linkRow?.accountId));
-                if (success) {
-                    toast.success("SMTP account deleted");
-                }
+				const { success } = await deleteSmtpAccount(
+					String(smtpSecret?.linkRow?.accountId),
+				);
+				if (success) {
+					toast.success("SMTP account deleted");
+				}
 			},
 		});
 
@@ -75,7 +77,7 @@ function SmtpAccountCard({
 
 		try {
 			// const res = verifyResponse ? verifyResponse : await testSmtpAccount(smtpSecret);
-			const {data: res} = await verifySmtpAccount(smtpSecret);
+			const { data: res } = await verifySmtpAccount(smtpSecret);
 
 			if (res?.meta?.send) {
 				toast.success("SMTP connection verified", {

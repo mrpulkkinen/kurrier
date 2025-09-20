@@ -202,9 +202,14 @@ export class SesMailer implements Mailer {
 			Recipients: [normalized],
 			Actions: [
 				// { S3Action: { BucketName: bucket, ObjectKeyPrefix: `inbound/${slugify(address)}` } },
-				{ S3Action: { BucketName: bucket, ObjectKeyPrefix: `inbound/${address}` } },
+				{
+					S3Action: {
+						BucketName: bucket,
+						ObjectKeyPrefix: `inbound/${address}`,
+					},
+				},
 				{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
-                { StopAction: { Scope: "RuleSet" } },
+				{ StopAction: { Scope: "RuleSet" } },
 			],
 			ScanEnabled: true,
 			TlsPolicy: "Optional",
@@ -237,7 +242,7 @@ export class SesMailer implements Mailer {
 			new SetReceiptRulePositionCommand({
 				RuleSetName: activeRuleSet,
 				RuleName: ruleName,
-                // After: ""
+				// After: ""
 			}),
 		);
 
@@ -421,7 +426,7 @@ export class SesMailer implements Mailer {
 									S3Action: { BucketName: bucket, ObjectKeyPrefix: "inbound/" },
 								},
 								{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
-                                { StopAction: { Scope: "RuleSet" } },
+								{ StopAction: { Scope: "RuleSet" } },
 							],
 							ScanEnabled: true,
 							TlsPolicy: "Optional",
@@ -715,37 +720,39 @@ export class SesMailer implements Mailer {
 		}
 	}
 
-    async sendTestEmail(
-        to: string,
-        opts?: { subject?: string; body?: string },
-    ): Promise<boolean> {
-        const subject = opts?.subject ?? "Test email";
-        const body    = opts?.body ?? "This is a test email from your configured SES account. Whats up";
+	async sendTestEmail(
+		to: string,
+		opts?: { subject?: string; body?: string },
+	): Promise<boolean> {
+		const subject = opts?.subject ?? "Test email";
+		const body =
+			opts?.body ??
+			"This is a test email from your configured SES account. Whats up";
 
-        // Must be a verified email or an address at a verified domain in this SES account/region
-        // const from = (this.cfg as SesConfig).mailFrom ?? to;
-        const from = "no-reply@kurrier.org"
+		// Must be a verified email or an address at a verified domain in this SES account/region
+		// const from = (this.cfg as SesConfig).mailFrom ?? to;
+		const from = "no-reply@kurrier.org";
 
-        try {
-            await this.client.send(
-                new SendEmailCommand({
-                    Source: from,
-                    Destination: { ToAddresses: [to] },
-                    Message: {
-                        Subject: { Data: subject, Charset: "UTF-8" },
-                        Body: {
-                            Text: { Data: body, Charset: "UTF-8" },
-                            // Html: { Data: `<p>${body}</p>`, Charset: "UTF-8" }, // optional
-                        },
-                    },
-                })
-            );
-            return true;
-        } catch (err) {
-            console.error("SES sendTestEmail error:", err);
-            return false;
-        }
-    }
+		try {
+			await this.client.send(
+				new SendEmailCommand({
+					Source: from,
+					Destination: { ToAddresses: [to] },
+					Message: {
+						Subject: { Data: subject, Charset: "UTF-8" },
+						Body: {
+							Text: { Data: body, Charset: "UTF-8" },
+							// Html: { Data: `<p>${body}</p>`, Charset: "UTF-8" }, // optional
+						},
+					},
+				}),
+			);
+			return true;
+		} catch (err) {
+			console.error("SES sendTestEmail error:", err);
+			return false;
+		}
+	}
 
 	// async close(): Promise<void> {
 	//     // best-effort close if transport supports it

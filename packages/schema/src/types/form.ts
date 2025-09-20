@@ -36,24 +36,24 @@ export type FormState<TData = unknown> = {
 };
 
 function toMessage(e: unknown): string {
-    if (e instanceof Error) return e.message || "Unknown error";
-    if (typeof e === "string") return e;
-    try {
-        return JSON.stringify(e);
-    } catch {
-        return "Unknown error";
-    }
+	if (e instanceof Error) return e.message || "Unknown error";
+	if (typeof e === "string") return e;
+	try {
+		return JSON.stringify(e);
+	} catch {
+		return "Unknown error";
+	}
 }
 
 export async function handleAction<T extends FormState<any>>(
-    fn: () => Promise<T>
+	fn: () => Promise<T>,
 ): Promise<T> {
-    try {
-        return await fn();
-    } catch (e) {
-        return {
-            success: false,
-            error: toMessage(e),
-        } as T;
-    }
+	try {
+		return await fn();
+	} catch (e) {
+		return {
+			success: false,
+			error: toMessage(e),
+		} as T;
+	}
 }

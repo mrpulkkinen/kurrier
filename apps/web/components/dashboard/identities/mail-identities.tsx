@@ -334,10 +334,10 @@ export default function MailIdentities({
 			labels: { confirm: "Delete", cancel: "Cancel" },
 			confirmProps: { color: "red" },
 			onConfirm: async () => {
-				const {success, message} = await deleteEmailIdentity(userIdentity);
-                if (success){
-                    toast.success(message);
-                }
+				const { success, message } = await deleteEmailIdentity(userIdentity);
+				if (success) {
+					toast.success(message);
+				}
 			},
 		});
 	};
@@ -376,8 +376,8 @@ export default function MailIdentities({
 						description: error,
 					});
 				} else {
-                    toast.success("Domain identity deleted");
-                }
+					toast.success("Domain identity deleted");
+				}
 			},
 		});
 	};
@@ -676,10 +676,11 @@ export default function MailIdentities({
 																			);
 																		},
 																	);
-																	const {data: response} = await verifyDomainIdentity(
-																		userDomainIdentity,
-																		providerAccount,
-																	);
+																	const { data: response } =
+																		await verifyDomainIdentity(
+																			userDomainIdentity,
+																			providerAccount,
+																		);
 																	if (response?.status === "verified") {
 																		toast.success(
 																			"Domain verified successfully",
