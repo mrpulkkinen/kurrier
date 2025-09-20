@@ -59,8 +59,11 @@ function SmtpAccountCard({
 			),
 			labels: { confirm: "Delete", cancel: "Cancel" },
 			confirmProps: { color: "red" },
-			onConfirm: () => {
-				deleteSmtpAccount(String(smtpSecret?.linkRow?.accountId));
+			onConfirm: async () => {
+				const {success} = await deleteSmtpAccount(String(smtpSecret?.linkRow?.accountId));
+                if (success) {
+                    toast.success("SMTP account deleted");
+                }
 			},
 		});
 
@@ -72,9 +75,9 @@ function SmtpAccountCard({
 
 		try {
 			// const res = verifyResponse ? verifyResponse : await testSmtpAccount(smtpSecret);
-			const res = await verifySmtpAccount(smtpSecret);
+			const {data: res} = await verifySmtpAccount(smtpSecret);
 
-			if (res.meta?.send) {
+			if (res?.meta?.send) {
 				toast.success("SMTP connection verified", {
 					description:
 						"Outgoing mail server is reachable and credentials are valid.",
@@ -82,13 +85,13 @@ function SmtpAccountCard({
 			} else {
 				toast.error("SMTP verification failed", {
 					description:
-						String(res.meta?.response) ||
+						String(res?.meta?.response) ||
 						"Could not connect with the provided SMTP credentials.",
 				});
 			}
 
-			if (res.meta?.receive !== undefined) {
-				if (res.meta.receive) {
+			if (res?.meta?.receive !== undefined) {
+				if (res?.meta.receive) {
 					toast.success("IMAP connection verified", {
 						description:
 							"Incoming mail server is reachable and credentials are valid.",
@@ -102,10 +105,10 @@ function SmtpAccountCard({
 				}
 			}
 
-			if (!res.ok) {
+			if (!res?.ok) {
 				toast.error("SMTP verification failed", {
 					description:
-						res.message || "Verification failed due to an unknown error.",
+						res?.message || "Verification failed due to an unknown error.",
 				});
 			}
 		} catch (err: any) {

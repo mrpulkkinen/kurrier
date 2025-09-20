@@ -76,7 +76,7 @@ export default function ProviderCard({
 		setTesting(true);
 		try {
 			// const res = await testProviderAccount(userProvider.type, decryptedSecret);
-			const res = await verifyProviderAccount(
+			const {data: res} = await verifyProviderAccount(
 				userProvider.type,
 				decryptedSecret,
 			);

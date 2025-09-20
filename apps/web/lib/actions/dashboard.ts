@@ -15,19 +15,23 @@ import {
 	updateSecret,
 } from "@db";
 import {
-	FormState,
-	GenericResult,
-	getPublicEnv,
-	Providers,
-	PROVIDERS,
+    DomainIdentityFormSchema,
+    FormState,
+    getPublicEnv, handleAction, ProviderAccountFormSchema,
+    Providers,
+    PROVIDERS, SmtpAccountFormSchema,
 } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { decode } from "decode-formdata";
 import { PgColumn, PgTable } from "drizzle-orm/pg-core";
-import { createMailer, VerifyResult } from "@providers";
+import {createMailer, DomainIdentity, VerifyResult} from "@providers";
 import { parseSecret } from "@/lib/utils";
+import {z} from "zod";
+
+
+const DASHBOARD_PATH = "/dashboard/providers"
 
 export const syncProviders = async () => {
 	const rls = await rlsClient();
@@ -50,133 +54,120 @@ export async function upsertProviderAccount(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
-	try {
-		const session = await currentSession();
-		const data = decode(formData);
-		const rls = await rlsClient();
-		const [providerSecret] = await rls((tx) =>
-			tx
-				.select()
-				.from(providerSecrets)
-				.where(eq(providerSecrets.providerId, String(data.providerId))),
-		);
+    return handleAction(async () => {
+        const session = await currentSession();
+        const data = decode(formData);
+        const parsed = ProviderAccountFormSchema.parse(data);
 
-		if (!providerSecret) {
-			const newSecret = await createSecret(session, {
-				name: String(data.ulid),
-				value: JSON.stringify(data.required),
-			});
-			await rls((tx) =>
-				tx.insert(providerSecrets).values({
-					providerId: String(data.providerId),
-					secretId: newSecret.id,
-				}),
-			);
-		} else {
-			await updateSecret(session, providerSecret.secretId, {
-				name: String(data.ulid),
-				value: JSON.stringify(data.required),
-			});
-		}
 
-		revalidatePath("/dashboard/providers");
+        const rls = await rlsClient();
+        const [providerSecret] = await rls((tx) =>
+            tx
+                .select()
+                .from(providerSecrets)
+                .where(eq(providerSecrets.providerId, String(parsed.providerId))),
+        );
 
-		return {
-			success: true,
-			message: "Successfully updated provider account",
-		};
-	} catch (e) {
-		return {
-			success: false,
-			error: "Error updating provider account",
-		};
-	}
+        if (!providerSecret) {
+            const newSecret = await createSecret(session, {
+                name: String(parsed.ulid),
+                value: JSON.stringify(parsed.required),
+            });
+            await rls((tx) =>
+                tx.insert(providerSecrets).values({
+                    providerId: String(parsed.providerId),
+                    secretId: newSecret.id,
+                }),
+            );
+        } else {
+            await updateSecret(session, providerSecret.secretId, {
+                name: String(parsed.ulid),
+                value: JSON.stringify(parsed.required),
+            });
+        }
+
+        revalidatePath(DASHBOARD_PATH);
+
+        return {
+            success: true,
+            message: "Successfully updated provider account",
+        };
+    })
 }
 
 export async function upsertSMTPAccount(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
-	try {
-		const session = await currentSession();
-		const data = decode(formData);
-		const cleanedRequired = Object.fromEntries(
-			Object.entries(data.required ?? {}).filter(
-				([, v]) => v !== "" && v != null,
-			),
-		);
-		const cleanedOptional = Object.fromEntries(
-			Object.entries(data.optional ?? {}).filter(
-				([, v]) => v !== "" && v != null,
-			),
-		);
+    return handleAction(async () => {
+        const session = await currentSession();
 
-		const smtpConfig: Record<string, unknown> = {
-			ulid: data.ulid,
-			label: String(data.label || "My SMTP Account").trim(),
-			...cleanedRequired,
-			...cleanedOptional,
-		};
+        const data = decode(formData);
+        const parsed = SmtpAccountFormSchema.parse(data);
+        const cleanedOptional = parsed.optional;
+        const cleanedRequired = parsed.required;
 
-		const rls = await rlsClient();
+        const smtpConfig: Record<string, unknown> = {
+            ulid: parsed.ulid,
+            label: String(parsed.label || "My SMTP Account").trim(),
+            ...cleanedRequired,
+            ...cleanedOptional,
+        };
 
-		if (data.accountId) {
-			const [accountSecret] = await rls((tx) =>
-				tx
-					.select()
-					.from(smtpAccountSecrets)
-					.where(eq(smtpAccountSecrets.accountId, String(data.accountId))),
-			);
+        const rls = await rlsClient();
 
-			if (!accountSecret) {
-				const newSecret = await createSecret(session, {
-					name: String(data.ulid),
-					value: JSON.stringify(smtpConfig),
-				});
-				await rls((tx) =>
-					tx.insert(accountSecret).values({
-						providerId: String(data.accountId),
-						secretId: newSecret.id,
-					}),
-				);
-			} else {
-				await updateSecret(session, accountSecret.secretId, {
-					value: JSON.stringify(smtpConfig),
-				});
-			}
-		} else {
-			const secretMeta = await createSecret(session, {
-				name: String(data.ulid),
-				value: JSON.stringify(smtpConfig),
-			});
+        if (parsed.accountId) {
+            const [accountSecret] = await rls((tx) =>
+                tx
+                    .select()
+                    .from(smtpAccountSecrets)
+                    .where(eq(smtpAccountSecrets.accountId, String(parsed.accountId))),
+            );
 
-			const [smtpAccount] = await rls((tx) =>
-				tx.insert(smtpAccounts).values({}).returning(),
-			);
+            if (!accountSecret) {
+                const newSecret = await createSecret(session, {
+                    name: String(parsed.ulid),
+                    value: JSON.stringify(smtpConfig),
+                });
+                await rls((tx) =>
+                    tx.insert(accountSecret).values({
+                        providerId: String(parsed.accountId),
+                        secretId: newSecret.id,
+                    }),
+                );
+            } else {
+                await updateSecret(session, accountSecret.secretId, {
+                    value: JSON.stringify(smtpConfig),
+                });
+            }
+        } else {
+            const secretMeta = await createSecret(session, {
+                name: String(parsed.ulid),
+                value: JSON.stringify(smtpConfig),
+            });
 
-			await rls((tx) =>
-				tx
-					.insert(smtpAccountSecrets)
-					.values({
-						accountId: smtpAccount.id,
-						secretId: secretMeta.id,
-					})
-					.returning(),
-			);
-		}
+            const [smtpAccount] = await rls((tx) =>
+                tx.insert(smtpAccounts).values({}).returning(),
+            );
 
-		revalidatePath("/dashboard/providers");
+            await rls((tx) =>
+                tx
+                    .insert(smtpAccountSecrets)
+                    .values({
+                        accountId: smtpAccount.id,
+                        secretId: secretMeta.id,
+                    })
+                    .returning(),
+            );
+        }
 
-		return {
-			success: true,
-			message: "Done",
-		};
-	} catch (e) {
-		return {
-			success: false,
-			error: "Error updating provider account",
-		};
-	}
+        revalidatePath(DASHBOARD_PATH);
+
+        return {
+            success: true,
+            message: "Done",
+        };
+    })
 }
 
 export async function fetchDecryptedSecrets({
@@ -219,12 +210,19 @@ export async function fetchDecryptedSecrets({
 			const metaId = String(r.metaId);
 			const { vault } = await getSecret(session, metaId);
 
+            const payload = {
+                linkRow: r.linkRow,
+                metaId,
+                vault,
+                providerId: r.linkRow?.providerId,
+                accountId: r.linkRow?.accountId,
+                provider: r.provider,
+                smtpAccount: r.smtpAccount
+            }
+            const parsedSecret = parseSecret(payload as FetchDecryptedSecretsResult[number]);
 			return {
-				linkRow: r.linkRow,
-				metaId,
-				vault,
-				provider: r.provider,
-				smtpAccount: r.smtpAccount,
+                ...payload,
+                parsedSecret: parsedSecret,
 			};
 		}),
 	);
@@ -237,29 +235,40 @@ export type FetchDecryptedSecretsResult = Awaited<
 export type FetchDecryptedSecretsResultRow =
 	FetchDecryptedSecretsResult[number];
 
-export const deleteSmtpAccount = async (id: string) => {
-	const rls = await rlsClient();
-	await rls((tx) => tx.delete(smtpAccounts).where(eq(smtpAccounts.id, id)));
-	revalidatePath("/dashboard/providers");
+export const deleteSmtpAccount = async (id: string): Promise<FormState> => {
+    return handleAction(async () => {
+        const rls = await rlsClient();
+        await rls((tx) => tx.delete(smtpAccounts).where(eq(smtpAccounts.id, id)));
+        revalidatePath(DASHBOARD_PATH);
+        return {
+            success: true,
+            message: "Deleted SMTP account"
+        }
+    })
 };
 
 export const verifySmtpAccount = async (
 	smtpSecret: FetchDecryptedSecretsResultRow,
-) => {
-	const parsedVaultValues = parseSecret(smtpSecret);
+): Promise<FormState<VerifyResult>> => {
+    return handleAction(async () => {
+        const parsedVaultValues = smtpSecret.parsedSecret;
+        const session = await currentSession();
 
-	const session = await currentSession();
+        const mailer = createMailer("smtp", parsedVaultValues);
+        const res = await mailer.verify(String(smtpSecret?.linkRow?.accountId));
+        parsedVaultValues.sendVerified = res?.meta?.send;
+        parsedVaultValues.receiveVerified = res?.meta?.receive;
 
-	const mailer = createMailer("smtp", parsedVaultValues);
-	const res = await mailer.verify(String(smtpSecret?.linkRow?.accountId));
-	parsedVaultValues.sendVerified = res?.meta?.send;
-	parsedVaultValues.receiveVerified = res?.meta?.receive;
-
-	await updateSecret(session, smtpSecret.metaId, {
-		value: JSON.stringify(parsedVaultValues),
-	});
-	revalidatePath("/dashboard/providers");
-	return res;
+        await updateSecret(session, smtpSecret.metaId, {
+            value: JSON.stringify(parsedVaultValues),
+        });
+        revalidatePath(DASHBOARD_PATH);
+        return {
+            success: res.ok,
+            message: res.message,
+            data: res as VerifyResult,
+        };
+    })
 };
 
 export const getProviderById = async (providerId: string) => {
@@ -286,211 +295,209 @@ export const getSMTPAccountById = async (accountId: string) => {
 	return account;
 };
 
-const initializeDomainIdentity = async (data: Record<any, unknown>) => {
-	try {
-		const [secret] = await fetchDecryptedSecrets({
-			linkTable: providerSecrets,
-			foreignCol: providerSecrets.providerId,
-			secretIdCol: providerSecrets.secretId,
-			parentId: String(
-				data.kind === "domain" ? data.providerId : data.smtpAccountId,
-			),
-		});
+export async function initializeDomainIdentity(
+    data: Record<string, unknown>
+): Promise<FormState<{ identity: DomainIdentity }>> {
+    return handleAction(async () => {
+        const [secret] = await fetchDecryptedSecrets({
+            linkTable: providerSecrets,
+            foreignCol: providerSecrets.providerId,
+            secretIdCol: providerSecrets.secretId,
+            parentId: String(
+                data.kind === "domain" ? data.providerId : data.smtpAccountId
+            ),
+        });
 
-		if (!secret) {
-			throw new Error("No provider secret found for this selection");
-		}
+        if (!secret) {
+            throw new Error("No provider secret found for this selection");
+        }
 
-		const providerIdentifier = secret?.provider?.type;
+        const providerIdentifier = secret?.provider?.type;
+        if (!providerIdentifier) {
+            throw new Error("Unsupported provider type or missing provider");
+        }
 
-		if (providerIdentifier) {
-			const decrypted = parseSecret(secret);
-			const mailer = createMailer(providerIdentifier, decrypted);
+        const decrypted = secret.parsedSecret;
+        const mailer = createMailer(providerIdentifier, decrypted);
 
-			const identity = await mailer.addDomain(
-				String(data?.value),
-				String(data?.mailFromSubdomain ?? "").trim() || undefined,
-				String(data?.incomingDomain) === "true",
-			);
+        const identity = await mailer.addDomain(
+            String(data?.value),
+            String(data?.mailFromSubdomain ?? "").trim() || undefined,
+            String(data?.incomingDomain) === "true"
+        );
 
-			return { ok: true, identity };
-		} else {
-			throw new Error("Unsupported provider type or missing provider");
-		}
-	} catch (err: any) {
-		const fallbackIdentity = {
-			domain: String(data?.value ?? ""),
-			status: "unverified",
-			dns: [] as any[],
-			meta: {
-				error: err?.name ?? "InitError",
-				message: err?.message ?? "Failed to initialize mailer identity",
-			},
-		};
-
-		return { ok: false, identity: fallbackIdentity };
-	}
+        return {
+            success: true,
+            message: "Domain identity initialized",
+            data: { identity },
+        };
+    });
 };
 
+
+type DomainIdentityResult = Awaited<ReturnType<typeof initializeDomainIdentity>>;
 export async function addNewDomainIdentity(
-	_prev: FormState,
-	formData: FormData,
-): Promise<FormState> {
-	try {
-		const rls = await rlsClient();
-		const data = decode(formData);
+    _prev: FormState,
+    formData: FormData
+): Promise<FormState<DomainIdentityResult["data"]>> {
+    return handleAction(async () => {
+        const parsed = DomainIdentityFormSchema.parse(decode(formData));
+        const { success, data, error } = await initializeDomainIdentity(parsed);
+        if (!success || !data?.identity) throw new Error(error ?? "Failed to add new identity");
 
-		const { ok, identity } = await initializeDomainIdentity(data);
+        const identity = data.identity;
 
-		if (ok) {
-			const payload = {
-				kind: data.kind,
-				value: identity.domain,
-				providerId: String(data.providerId),
-				status: identity.status,
-				incomingDomain: String(data?.incomingDomain) === "true",
-				dnsRecords: identity.dns ?? undefined,
-				metaData: identity.meta ?? undefined,
-			};
-			const identityData = IdentityInsertSchema.parse(payload);
-			await rls((tx) =>
-				tx
-					.insert(identities)
-					.values(identityData as IdentityCreate)
-					.returning(),
-			);
-		}
+        const rls = await rlsClient();
+        const payload = {
+            kind: parsed.kind,
+            value: identity.domain,
+            providerId: String(parsed.providerId),
+            status: identity.status,
+            incomingDomain: String(parsed?.incomingDomain) === "true",
+            dnsRecords: identity.dns ?? undefined,
+            metaData: identity.meta ?? undefined,
+        } satisfies z.infer<typeof IdentityInsertSchema>;
 
-		revalidatePath("/dashboard/providers");
-		return {
-			success: ok,
-			message: ok ? "Added new identity" : "Failed to add new identity",
-			data: { identity },
-		};
-	} catch (e: any) {
-		const cause = e?.cause ?? e?.message ?? "Unknown error";
-		return {
-			success: false,
-			error: `Error adding new identity: ${cause}`,
-			data: { identity: null },
-		};
-	}
+        await rls((tx) => tx.insert(identities).values(payload as IdentityCreate));
+        revalidatePath(DASHBOARD_PATH);
+
+        return { success: true, message: "Added new identity", data };
+    });
 }
+
+
+
+
 
 export async function verifyDomainIdentity(
 	userDomainIdentity: FetchUserIdentitiesResult[number],
 	providerAccount: FetchDecryptedSecretsResult[number] | undefined,
-) {
-	const decrypted = parseSecret(providerAccount);
-	const mailer = createMailer(
-		providerAccount?.provider?.type as Providers,
-		decrypted,
-	);
-	const response = await mailer.verifyDomain(
-		userDomainIdentity.identities.value,
-	);
-	const rls = await rlsClient();
-	await rls((tx) =>
-		tx
-			.update(identities)
-			.set({
-				status: response.status,
-			})
-			.where(eq(identities.id, userDomainIdentity?.identities.id)),
-	);
-	revalidatePath("/dashboard/providers");
-	return response;
+): Promise<FormState<DomainIdentity>> {
+
+    return handleAction(async () => {
+        // const decrypted = parseSecret(providerAccount);
+        const decrypted = providerAccount?.parsedSecret;
+        const mailer = createMailer(
+            providerAccount?.provider?.type as Providers,
+            decrypted,
+        );
+        const response = await mailer.verifyDomain(
+            userDomainIdentity.identities.value,
+        );
+        const rls = await rlsClient();
+        await rls((tx) =>
+            tx
+                .update(identities)
+                .set({
+                    status: response.status,
+                })
+                .where(eq(identities.id, userDomainIdentity?.identities.id)),
+        );
+        revalidatePath(DASHBOARD_PATH);
+        return {
+            success: true,
+            data: response
+        };
+    })
 }
 
 const initializeEmailIdentity = async (data: Record<any, unknown>) => {
-	const [secret] = await fetchDecryptedSecrets({
-		linkTable: providerSecrets,
-		foreignCol: providerSecrets.providerId,
-		secretIdCol: providerSecrets.secretId,
-		parentId: data.providerId as string,
-	});
-	const parsedVaultValues = parseSecret(secret);
-	const decrypted = parseSecret(secret);
-	const mailer = createMailer(secret?.provider?.type as Providers, decrypted);
-	const provider = await getProviderById(String(data?.providerId));
-	const response = await mailer.addEmail(
-		String(data?.value),
-		provider?.metaData?.verification ? provider?.metaData?.verification : {},
-	);
-	return { response, parsedVaultValues, secret };
+    return handleAction(async () => {
+        const [secret] = await fetchDecryptedSecrets({
+            linkTable: providerSecrets,
+            foreignCol: providerSecrets.providerId,
+            secretIdCol: providerSecrets.secretId,
+            parentId: data.providerId as string,
+        });
+        const decrypted = secret.parsedSecret;
+        const mailer = createMailer(secret?.provider?.type as Providers, decrypted);
+        const provider = await getProviderById(String(data?.providerId));
+        const response = await mailer.addEmail(
+            String(data?.value),
+            provider?.metaData?.verification ? provider?.metaData?.verification : {},
+        );
+        return {
+            success: true,
+            data: { response, parsedVaultValues: decrypted, secret }
+        };
+    })
 };
+
 
 export async function addNewEmailIdentity(
 	_prev: FormState,
 	formData: FormData,
-): Promise<FormState> {
-	try {
-		const rls = await rlsClient();
-		const data = decode(formData);
+) {
+    return handleAction(async () => {
+        const rls = await rlsClient();
+        const data = decode(formData);
 
-		if (data.smtpAccountId) {
-			const identityData = IdentityInsertSchema.parse(data);
-			await rls((tx) =>
-				tx.insert(identities).values(identityData as IdentityCreate),
-			);
-		} else {
-			data.domainIdentityId = data.domain;
+        if (data.smtpAccountId) {
+            const identityData = IdentityInsertSchema.parse(data);
+            await rls((tx) =>
+                tx.insert(identities).values(identityData as IdentityCreate),
+            );
+        } else {
+            data.domainIdentityId = data.domain;
 
-			const [domainIdentity] = await rls((tx) =>
-				tx
-					.select()
-					.from(identities)
-					.where(eq(identities.id, String(data.domainIdentityId))),
-			);
+            const [domainIdentity] = await rls((tx) =>
+                tx
+                    .select()
+                    .from(identities)
+                    .where(eq(identities.id, String(data.domainIdentityId))),
+            );
 
-			const { response, parsedVaultValues, secret } =
-				await initializeEmailIdentity(data);
-			data.metaData = response;
-			const identityData = IdentityInsertSchema.parse(data);
-			await rls((tx) =>
-				tx.insert(identities).values(identityData as IdentityCreate),
-			);
+            const initRes = await initializeEmailIdentity(data);
+            if (!initRes.success || !initRes.data) {
+                throw new Error("Failed to initialize email identity");
+            }
+            const { response, parsedVaultValues, secret } = initRes.data;
 
-			const session = await currentSession();
-			parsedVaultValues.sendVerified = true;
-			parsedVaultValues.receiveVerified = domainIdentity.incomingDomain;
-			await updateSecret(session, secret.metaId, {
-				value: JSON.stringify(parsedVaultValues),
-			});
-		}
-	} catch (e) {
-		const cause = (e as Error)?.cause;
-		return {
-			success: false,
-			error: `Error adding new identity: ${cause}`,
-		};
-	}
+            data.metaData = response;
+            const identityData = IdentityInsertSchema.parse(data);
+            await rls((tx) =>
+                tx.insert(identities).values(identityData as IdentityCreate),
+            );
 
-	revalidatePath("/dashboard/providers");
-	return {
-		success: true,
-		message: "Added new identity",
-	};
+            const session = await currentSession();
+            parsedVaultValues.sendVerified = true;
+            parsedVaultValues.receiveVerified = domainIdentity.incomingDomain;
+            await updateSecret(session, secret.metaId, {
+                value: JSON.stringify(parsedVaultValues),
+            });
+        }
+
+        revalidatePath(DASHBOARD_PATH);
+        return {
+            success: true,
+            message: "Added new identity",
+        }
+    })
 }
 
 export const testSendingEmail = async (
 	userIdentity: FetchUserIdentitiesResult[number],
 	decryptedSecrets: Record<any, unknown>,
-): Promise<{ ok: boolean; message: string }> => {
-	try {
-		if (userIdentity?.smtp_accounts) {
-			const mailer = createMailer("smtp", decryptedSecrets);
-			await mailer.sendTestEmail(userIdentity.identities.value, {
-				subject: "Test email from Kurrier",
-				body: "This is a test email from your configured SMTP account in Kurrier.",
-			});
-			return { ok: true, message: "Test email sent successfully." };
-		}
+) => {
+    return handleAction(async () => {
+        if (userIdentity?.smtp_accounts) {
+            const mailer = createMailer("smtp", decryptedSecrets);
+            await mailer.sendTestEmail(userIdentity.identities.value, {
+                subject: "Test email from Kurrier",
+                body: "This is a test email from your configured SMTP account in Kurrier.",
+            });
+            return { success: true, message: "Test email sent successfully." };
+        } else if (userIdentity?.providers) {
+            const mailer = createMailer(userIdentity?.providers.type as Providers, decryptedSecrets);
+            await mailer.sendTestEmail(userIdentity.identities.value, {
+                subject: "Test email from Kurrier",
+                body: "This is a test email from your configured account in Kurrier.",
+            });
+            return { success: true, message: "Test email sent successfully." };
+        }
 
-		return { ok: false, message: "Provider not supported yet." };
-	} catch (err: any) {
-		return { ok: false, message: err?.message || "Failed to send test email." };
-	}
+        return { success: false , error: "Provider not supported yet." };
+    })
 };
 
 export const fetchUserIdentities = async () => {
@@ -507,121 +514,123 @@ export const fetchUserIdentities = async () => {
 export const deleteDomainIdentity = async (
 	userDomainIdentity: FetchUserIdentitiesResult[number],
 	providerAccount: FetchDecryptedSecretsResult[number] | undefined,
-): Promise<GenericResult> => {
-	try {
-		const rls = await rlsClient();
-		const emailsUsingThisDomain = await rls((tx) =>
-			tx
-				.select()
-				.from(identities)
-				.where(
-					eq(identities.domainIdentityId, userDomainIdentity?.identities.id),
-				),
-		);
-		if (emailsUsingThisDomain.length > 0) {
-			throw new Error(
-				"Cannot delete domain identity while email identities are still using it. Please delete associated email identities first.",
-			);
-		}
+): Promise<FormState> => {
+    return handleAction(async () => {
+        const rls = await rlsClient();
+        const emailsUsingThisDomain = await rls((tx) =>
+            tx
+                .select()
+                .from(identities)
+                .where(
+                    eq(identities.domainIdentityId, userDomainIdentity?.identities.id),
+                ),
+        );
+        if (emailsUsingThisDomain.length > 0) {
+            throw new Error(
+                "Cannot delete domain identity while email identities are still using it. Please delete associated email identities first.",
+            );
+        }
 
-		const decrypted = parseSecret(providerAccount);
-		const mailer = createMailer(
-			providerAccount?.provider?.type as Providers,
-			decrypted,
-		);
-		await mailer.removeDomain(String(userDomainIdentity?.identities.value));
-		await rls((tx) =>
-			tx
-				.delete(identities)
-				.where(eq(identities.id, userDomainIdentity?.identities.id)),
-		);
-	} catch (e: unknown) {
-		if (e instanceof Error) {
-			console.error(e.message);
-			return { success: false, error: e.message };
-		}
+        const decrypted = providerAccount?.parsedSecret;
+        const mailer = createMailer(
+            providerAccount?.provider?.type as Providers,
+            decrypted,
+        );
+        await mailer.removeDomain(String(userDomainIdentity?.identities.value));
+        await rls((tx) =>
+            tx
+                .delete(identities)
+                .where(eq(identities.id, userDomainIdentity?.identities.id)),
+        );
 
-		return { success: false, error: "Unknown error" };
-	}
+        revalidatePath(DASHBOARD_PATH);
 
-	revalidatePath("/dashboard/providers");
-
-	return { success: true };
+        return { success: true };
+    })
 };
 
 export const deleteEmailIdentity = async (
 	userIdentity: FetchUserIdentitiesResult[number],
 ) => {
-	const rls = await rlsClient();
-	if (userIdentity.smtp_accounts) {
-		await rls((tx) =>
-			tx
-				.delete(identities)
-				.where(eq(identities.id, String(userIdentity.identities.id))),
-		);
-	} else {
-		const [secret] = await fetchDecryptedSecrets({
-			linkTable: providerSecrets,
-			foreignCol: providerSecrets.providerId,
-			secretIdCol: providerSecrets.secretId,
-			parentId: String(userIdentity?.identities.providerId),
-		});
-		const mailer = createMailer("ses", parseSecret(secret));
-		if (userIdentity?.providers?.type === "ses") {
-			await mailer.removeEmail(
-				userIdentity?.identities?.metaData?.ruleSetName,
-				userIdentity?.identities?.metaData?.ruleName,
-			);
-		}
-		await rls((tx) =>
-			tx
-				.delete(identities)
-				.where(eq(identities.id, String(userIdentity.identities.id))),
-		);
-	}
+    return handleAction(async () => {
+        const rls = await rlsClient();
+        if (userIdentity.smtp_accounts) {
+            await rls((tx) =>
+                tx
+                    .delete(identities)
+                    .where(eq(identities.id, String(userIdentity.identities.id))),
+            );
+        } else {
+            const [secret] = await fetchDecryptedSecrets({
+                linkTable: providerSecrets,
+                foreignCol: providerSecrets.providerId,
+                secretIdCol: providerSecrets.secretId,
+                parentId: String(userIdentity?.identities.providerId),
+            });
+            const providerType = userIdentity?.providers?.type as Providers;
+            // const mailer = createMailer(providerType, parseSecret(secret));
+            const mailer = createMailer(providerType, secret.parsedSecret);
+            if (userIdentity?.providers?.type === "ses") {
+                await mailer.removeEmail(
+                    userIdentity?.identities?.metaData?.ruleSetName,
+                    userIdentity?.identities?.metaData?.ruleName,
+                );
+            }
+            await rls((tx) =>
+                tx
+                    .delete(identities)
+                    .where(eq(identities.id, String(userIdentity.identities.id))),
+            );
+        }
 
-	revalidatePath("/dashboard/providers");
+        revalidatePath(DASHBOARD_PATH);
+        return { success: true, message: "Deleted email identity" };
+    })
 };
 
 export const verifyProviderAccount = async (
 	providerType: Providers,
 	providerSecret: FetchDecryptedSecretsResultRow,
 ) => {
-	let res = { ok: false, message: "Not implemented" } as VerifyResult;
-	if (providerType === "ses") {
-		const mailer = createMailer("ses", parseSecret(providerSecret));
-		const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
-		res = await mailer.verify(String(providerSecret?.linkRow?.providerId), {
-			WEB_URL: WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL,
-		});
 
-		const data = parseSecret(providerSecret);
-		data.verified = res.ok;
+    return handleAction(async () => {
+        let res = { ok: false, message: "Not implemented" } as VerifyResult;
+        if (providerType === "ses") {
+            const mailer = createMailer("ses", providerSecret.parsedSecret);
+            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+            res = await mailer.verify(String(providerSecret?.metaId), {
+                WEB_URL: WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL,
+            });
 
-		const session = await currentSession();
-		await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
-			value: JSON.stringify(data),
-		});
+            const data = providerSecret.parsedSecret;
+            data.verified = res.ok;
 
-		if (res.ok) {
-			const rls = await rlsClient();
-			await rls((tx) =>
-				tx
-					.update(providers)
-					.set({
-						metaData: {
-							...(providerSecret?.provider?.metaData ?? {}),
-							...{ verification: res.meta },
-						},
-					})
-					.where(eq(providers.id, String(providerSecret?.linkRow?.providerId))),
-			);
-		}
-	}
+            const session = await currentSession();
+            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+                value: JSON.stringify(data),
+            });
 
-	revalidatePath("/dashboard/providers");
+            if (res.ok) {
+                const rls = await rlsClient();
+                await rls((tx) =>
+                    tx
+                        .update(providers)
+                        .set({
+                            metaData: {
+                                ...(providerSecret?.provider?.metaData ?? {}),
+                                ...{ verification: res.meta },
+                            },
+                        })
+                        .where(eq(providers.id, String(providerSecret?.linkRow?.providerId))),
+                );
+            }
+        }
 
-	return res;
+        revalidatePath(DASHBOARD_PATH);
+
+        return {success: true, data: res};
+
+    })
 };
 
 export type FetchUserIdentitiesResult = Awaited<

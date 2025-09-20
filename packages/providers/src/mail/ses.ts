@@ -201,8 +201,10 @@ export class SesMailer implements Mailer {
 			Enabled: true,
 			Recipients: [normalized],
 			Actions: [
-				{ S3Action: { BucketName: bucket, ObjectKeyPrefix: "inbound/" } },
+				// { S3Action: { BucketName: bucket, ObjectKeyPrefix: `inbound/${slugify(address)}` } },
+				{ S3Action: { BucketName: bucket, ObjectKeyPrefix: `inbound/${address}` } },
 				{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
+                { StopAction: { Scope: "RuleSet" } },
 			],
 			ScanEnabled: true,
 			TlsPolicy: "Optional",
@@ -235,6 +237,7 @@ export class SesMailer implements Mailer {
 			new SetReceiptRulePositionCommand({
 				RuleSetName: activeRuleSet,
 				RuleName: ruleName,
+                // After: ""
 			}),
 		);
 
@@ -418,6 +421,7 @@ export class SesMailer implements Mailer {
 									S3Action: { BucketName: bucket, ObjectKeyPrefix: "inbound/" },
 								},
 								{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
+                                { StopAction: { Scope: "RuleSet" } },
 							],
 							ScanEnabled: true,
 							TlsPolicy: "Optional",
@@ -711,40 +715,37 @@ export class SesMailer implements Mailer {
 		}
 	}
 
-	async sendTestEmail(
-		to: string,
-		opts?: { subject?: string; body?: string },
-	): Promise<boolean> {
-		return true;
-		// try {
-		//     await this.client.send(
-		//         new SendEmailCommand({
-		//             Source: opts?.from ?? this.defaultFrom ?? to, // pick your preferred defaulting
-		//             Destination: { ToAddresses: [to] },
-		//             Message: {
-		//                 Subject: { Data: opts?.subject ?? "Test email" },
-		//                 Body: { Text: { Data: opts?.body ?? "This is a test email from your configured SES account." } },
-		//             },
-		//         })
-		//     );
-		//     return true;
-		// } catch (err) {
-		//     console.error("SES sendTestEmail error", err);
-		//     return false;
-		// }
-		// try {
-		//     await this.transporter.sendMail({
-		//         from: (this.transporter.options as any).auth.user,
-		//         to,
-		//         subject: opts?.subject ?? "Test email",
-		//         text: opts?.body ?? "This is a test email from your configured provider.",
-		//     });
-		//     return true;
-		// } catch (err) {
-		//     console.error("sendTestEmail error", err);
-		//     return false;
-		// }
-	}
+    async sendTestEmail(
+        to: string,
+        opts?: { subject?: string; body?: string },
+    ): Promise<boolean> {
+        const subject = opts?.subject ?? "Test email";
+        const body    = opts?.body ?? "This is a test email from your configured SES account. Whats up";
+
+        // Must be a verified email or an address at a verified domain in this SES account/region
+        // const from = (this.cfg as SesConfig).mailFrom ?? to;
+        const from = "no-reply@kurrier.org"
+
+        try {
+            await this.client.send(
+                new SendEmailCommand({
+                    Source: from,
+                    Destination: { ToAddresses: [to] },
+                    Message: {
+                        Subject: { Data: subject, Charset: "UTF-8" },
+                        Body: {
+                            Text: { Data: body, Charset: "UTF-8" },
+                            // Html: { Data: `<p>${body}</p>`, Charset: "UTF-8" }, // optional
+                        },
+                    },
+                })
+            );
+            return true;
+        } catch (err) {
+            console.error("SES sendTestEmail error:", err);
+            return false;
+        }
+    }
 
 	// async close(): Promise<void> {
 	//     // best-effort close if transport supports it

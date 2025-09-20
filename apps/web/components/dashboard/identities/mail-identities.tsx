@@ -253,12 +253,12 @@ export default function MailIdentities({
 	) => {
 		setSendTesting(true);
 		const res = await testSendingEmail(userIdentity, decryptedSecrets);
-		if (res.ok) {
-			toast.success("Test email sent", {
+		if (res.success) {
+			toast.success(res.message, {
 				description: res.message,
 			});
 		} else {
-			toast.error("Test email failed", {
+			toast.error(res.error, {
 				description: res.message,
 			});
 		}
@@ -333,9 +333,11 @@ export default function MailIdentities({
 			),
 			labels: { confirm: "Delete", cancel: "Cancel" },
 			confirmProps: { color: "red" },
-			onConfirm: () => {
-				// deleteEmailIdentity(String(userIdentity.identities.id));
-				deleteEmailIdentity(userIdentity);
+			onConfirm: async () => {
+				const {success, message} = await deleteEmailIdentity(userIdentity);
+                if (success){
+                    toast.success(message);
+                }
 			},
 		});
 	};
@@ -373,7 +375,9 @@ export default function MailIdentities({
 					toast.error("Failed to delete domain identity", {
 						description: error,
 					});
-				}
+				} else {
+                    toast.success("Domain identity deleted");
+                }
 			},
 		});
 	};
@@ -672,11 +676,11 @@ export default function MailIdentities({
 																			);
 																		},
 																	);
-																	const response = await verifyDomainIdentity(
+																	const {data: response} = await verifyDomainIdentity(
 																		userDomainIdentity,
 																		providerAccount,
 																	);
-																	if (response.status === "verified") {
+																	if (response?.status === "verified") {
 																		toast.success(
 																			"Domain verified successfully",
 																		);
