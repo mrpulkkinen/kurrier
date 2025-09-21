@@ -1,19 +1,13 @@
 {
-	"name": "worker",
-	"type": "module",
-	"scripts": {
-		"dev": "tsx watch src/index.ts",
-		"build": "tsc",
-		"start": "node dist/index.js"
-	},
-	"dependencies": {
-		"@hono/node-server": "^1.19.0",
-		"hono": "^4.9.4"
-	},
-	"devDependencies": {
-		"@types/node": "^20.11.17",
-		"tsconfig-paths": "^4.2.0",
-		"tsx": "^4.7.1",
-		"typescript": "^5.8.3"
-	}
+  "name": "kurrier-worker",
+  "private": true,
+  "scripts": {
+    "dev": "dotenvx run -f ../../.env -- nitro dev --port 3001",
+    "build": "dotenvx run -f ../../.env -- nitro build",
+    "start": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "h3": "^1.15.4",
+    "nitropack": "^2.12.4"
+  }
 }

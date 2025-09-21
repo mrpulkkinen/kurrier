@@ -7,7 +7,6 @@ const ZNodeEnv = z.enum(["development", "production", "test"]);
 /** Server-only (never sent to the browser) */
 export const ZServerConfig = z.object({
 	WEB_PORT: ZPort.default(3000),
-	WORKER_PORT: ZPort.default(3001),
 	NODE_ENV: ZNodeEnv.default("development"),
 	DATABASE_URL: z.string(
 		"DATABASE_URL must be a valid Postgres connection URL",
