@@ -837,15 +837,15 @@ export default function MailIdentities({
 
 										{/* Right: actions */}
 										<div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                                            <Button
-                                                leftSection={<IconSend size={16} />}
-                                                size="xs"
-                                                className="flex-1 sm:flex-none"
-                                                loading={sendTesting}
-                                                onClick={() => initTestEmail(userIdentity, decrypted)}
-                                            >
-                                                Mailbox
-                                            </Button>
+											<Button
+												leftSection={<IconSend size={16} />}
+												size="xs"
+												className="flex-1 sm:flex-none"
+												loading={sendTesting}
+												onClick={() => initTestEmail(userIdentity, decrypted)}
+											>
+												Mailbox
+											</Button>
 											<Button
 												leftSection={<IconSend size={16} />}
 												size="xs"
