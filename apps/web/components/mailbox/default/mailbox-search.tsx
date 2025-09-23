@@ -109,185 +109,202 @@
 //     );
 // }
 
-
-
-
-
 "use client";
 
 import * as React from "react";
 import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
+	CommandDialog,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+	CommandSeparator,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils"; // optional: remove if you don't use cn
 import { Search } from "lucide-react";
 
 type MockResult = {
-    id: string;
-    subject: string;
-    from: string;
-    when: string;
-    hasAttachment?: boolean;
+	id: string;
+	subject: string;
+	from: string;
+	when: string;
+	hasAttachment?: boolean;
 };
 
 const MOCK_RESULTS: MockResult[] = [
-    { id: "1", subject: "Your invoice is available for dinebot.io", from: "Google Payments", when: "2 Sept", hasAttachment: true },
-    { id: "2", subject: "Update your tax info", from: "Google Payments", when: "11 Aug" },
-    { id: "3", subject: "[Legal Update] Changes to Service Terms", from: "The Google Workspace Team", when: "26 Aug" },
-    { id: "4", subject: "Your invoice is available for dinebot.io", from: "Google Payments", when: "2 Jul", hasAttachment: true },
+	{
+		id: "1",
+		subject: "Your invoice is available for dinebot.io",
+		from: "Google Payments",
+		when: "2 Sept",
+		hasAttachment: true,
+	},
+	{
+		id: "2",
+		subject: "Update your tax info",
+		from: "Google Payments",
+		when: "11 Aug",
+	},
+	{
+		id: "3",
+		subject: "[Legal Update] Changes to Service Terms",
+		from: "The Google Workspace Team",
+		when: "26 Aug",
+	},
+	{
+		id: "4",
+		subject: "Your invoice is available for dinebot.io",
+		from: "Google Payments",
+		when: "2 Jul",
+		hasAttachment: true,
+	},
 ];
 
 export default function MailboxSearch() {
-    const [open, setOpen] = React.useState(false);
-    const [query, setQuery] = React.useState("");
+	const [open, setOpen] = React.useState(false);
+	const [query, setQuery] = React.useState("");
 
-    // Open with ⌘K / Ctrl+K
-    React.useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-                e.preventDefault();
-                setOpen((v) => !v);
-            }
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, []);
+	// Open with ⌘K / Ctrl+K
+	React.useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+				e.preventDefault();
+				setOpen((v) => !v);
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, []);
 
-    // Quick chips that append tokens into the query
-    const chips = [
-        { label: "Has attachment", token: "has:attachment" },
-        { label: "Last 7 days", token: "newer_than:7d" },
-        { label: "From me", token: "from:me" },
-    ];
+	// Quick chips that append tokens into the query
+	const chips = [
+		{ label: "Has attachment", token: "has:attachment" },
+		{ label: "Last 7 days", token: "newer_than:7d" },
+		{ label: "From me", token: "from:me" },
+	];
 
-    const filtered = query.trim()
-        ? MOCK_RESULTS.filter((r) =>
-            `${r.subject} ${r.from}`.toLowerCase().includes(query.toLowerCase())
-        )
-        : MOCK_RESULTS;
+	const filtered = query.trim()
+		? MOCK_RESULTS.filter((r) =>
+				`${r.subject} ${r.from}`.toLowerCase().includes(query.toLowerCase()),
+			)
+		: MOCK_RESULTS;
 
-    const handleSearchAll = () => {
-        // Replace with router push or your full search page
-        console.log("Full search for:", query);
-        setOpen(false);
-    };
+	const handleSearchAll = () => {
+		// Replace with router push or your full search page
+		console.log("Full search for:", query);
+		setOpen(false);
+	};
 
-    return (
-        <>
-            {/* Trigger input (tiny top bar). Click to open dialog */}
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="flex w-full items-center gap-2 rounded-lg border bg-background px-4 py-2.5 text-muted-foreground hover:bg-muted/30"
-            >
-                <Search className="h-4 w-4 opacity-60" />
-                <span className="text-sm">Search mail (⌘K)</span>
-            </button>
+	return (
+		<>
+			{/* Trigger input (tiny top bar). Click to open dialog */}
+			<button
+				type="button"
+				onClick={() => setOpen(true)}
+				className="flex w-full items-center gap-2 rounded-lg border bg-background px-4 py-2.5 text-muted-foreground hover:bg-muted/30"
+			>
+				<Search className="h-4 w-4 opacity-60" />
+				<span className="text-sm">Search mail (⌘K)</span>
+			</button>
 
-            <CommandDialog open={open} onOpenChange={setOpen}>
-                {/* INPUT */}
-                <CommandInput
-                    autoFocus
-                    placeholder="Search mail…"
-                    value={query}
-                    onValueChange={setQuery}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey || e.shiftKey)) {
-                            e.preventDefault();           // ⬅️ stop Command from selecting top item
-                            e.stopPropagation();
-                            // optional: modifier-based "open in new tab" etc
-                        } else if (e.key === "Enter" && query.trim().length > 0) {
-                            handleSearchAll();
-                        }
-                    }}
-                />
+			<CommandDialog open={open} onOpenChange={setOpen}>
+				{/* INPUT */}
+				<CommandInput
+					autoFocus
+					placeholder="Search mail…"
+					value={query}
+					onValueChange={setQuery}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+							e.preventDefault(); // ⬅️ stop Command from selecting top item
+							e.stopPropagation();
+							// optional: modifier-based "open in new tab" etc
+						} else if (e.key === "Enter" && query.trim().length > 0) {
+							handleSearchAll();
+						}
+					}}
+				/>
 
-                {/* CHIPS */}
-                <div className="sticky top-0 z-10 flex flex-wrap gap-2 border-b bg-background px-4 py-2">
-                    {chips.map((c) => (
-                        <Badge
-                            key={c.label}
-                            variant="secondary"
-                            className="cursor-pointer rounded-full px-3 py-1 text-sm"
-                            onClick={() =>
-                                setQuery((q) =>
-                                    q.includes(c.token) ? q : (q ? `${q} ${c.token}` : c.token)
-                                )
-                            }
-                        >
-                            {c.label}
-                        </Badge>
-                    ))}
-                </div>
+				{/* CHIPS */}
+				<div className="sticky top-0 z-10 flex flex-wrap gap-2 border-b bg-background px-4 py-2">
+					{chips.map((c) => (
+						<Badge
+							key={c.label}
+							variant="secondary"
+							className="cursor-pointer rounded-full px-3 py-1 text-sm"
+							onClick={() =>
+								setQuery((q) =>
+									q.includes(c.token) ? q : q ? `${q} ${c.token}` : c.token,
+								)
+							}
+						>
+							{c.label}
+						</Badge>
+					))}
+				</div>
 
-                <CommandList className="max-h-[60vh]">
-                    <CommandEmpty>No results found.</CommandEmpty>
+				<CommandList className="max-h-[60vh]">
+					<CommandEmpty>No results found.</CommandEmpty>
 
-                    <CommandGroup heading="Top results">
-                        {filtered.map((r) => (
-                            <CommandItem
-                                key={r.id}
-                                value={`${r.subject} ${r.from}`}
-                                onSelect={() => {
-                                    console.log("Navigate to message:", r.id);
-                                    setOpen(false);
-                                }}
-                                className="items-start gap-3 px-4 py-3"
-                            >
-                <span
-                    aria-hidden
-                    className="mt-1 h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40"
-                />
-                                <div className="min-w-0 flex-1">
-                                    <div className="truncate text-[15px] font-medium">
-                                        {r.subject}
-                                    </div>
-                                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="truncate">{r.from}</span>
-                                        <span>•</span>
-                                        <span>{r.when}</span>
-                                        {r.hasAttachment && (
-                                            <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
-                        attachment
-                      </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="shrink-0 pl-3 text-xs text-muted-foreground">
-                                    {/* right-side date / icons space (mock) */}
-                                </div>
-                            </CommandItem>
-                        ))}
-                    </CommandGroup>
-                </CommandList>
+					<CommandGroup heading="Top results">
+						{filtered.map((r) => (
+							<CommandItem
+								key={r.id}
+								value={`${r.subject} ${r.from}`}
+								onSelect={() => {
+									console.log("Navigate to message:", r.id);
+									setOpen(false);
+								}}
+								className="items-start gap-3 px-4 py-3"
+							>
+								<span
+									aria-hidden
+									className="mt-1 h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40"
+								/>
+								<div className="min-w-0 flex-1">
+									<div className="truncate text-[15px] font-medium">
+										{r.subject}
+									</div>
+									<div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+										<span className="truncate">{r.from}</span>
+										<span>•</span>
+										<span>{r.when}</span>
+										{r.hasAttachment && (
+											<span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
+												attachment
+											</span>
+										)}
+									</div>
+								</div>
+								<div className="shrink-0 pl-3 text-xs text-muted-foreground">
+									{/* right-side date / icons space (mock) */}
+								</div>
+							</CommandItem>
+						))}
+					</CommandGroup>
+				</CommandList>
 
-                <CommandSeparator />
+				<CommandSeparator />
 
-                {/* FOOTER BAR */}
-                <div className="flex items-center justify-between rounded-b-lg bg-background/95 px-4 py-3 backdrop-blur">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Search className="h-4 w-4 opacity-70" />
-                        <span>
-              All search results for{" "}
-                            <span className="font-medium text-foreground">
-                {`‘${query || ""}’`}
-              </span>
-            </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">Press ENTER</div>
-                </div>
-            </CommandDialog>
-        </>
-    );
+				{/* FOOTER BAR */}
+				<div className="flex items-center justify-between rounded-b-lg bg-background/95 px-4 py-3 backdrop-blur">
+					<div className="flex items-center gap-2 text-sm text-muted-foreground">
+						<Search className="h-4 w-4 opacity-70" />
+						<span>
+							All search results for{" "}
+							<span className="font-medium text-foreground">
+								{`‘${query || ""}’`}
+							</span>
+						</span>
+					</div>
+					<div className="text-xs text-muted-foreground">Press ENTER</div>
+				</div>
+			</CommandDialog>
+		</>
+	);
 }
-
 
 // "use client";
 //
@@ -348,8 +365,6 @@ export default function MailboxSearch() {
 //         </>
 //     );
 // }
-
-
 
 // "use client";
 //
@@ -491,11 +506,6 @@ export default function MailboxSearch() {
 //         </>
 //     );
 // }
-
-
-
-
-
 
 // "use client";
 //

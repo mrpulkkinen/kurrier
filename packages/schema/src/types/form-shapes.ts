@@ -1,7 +1,7 @@
 import { z } from "zod";
 import isFQDN from "validator/lib/isFQDN";
 import isEmail from "validator/lib/isEmail";
-import {messageStatesList} from "./mail";
+import { messageStatesList } from "./mail";
 
 const cleanKV = <T extends Record<string, unknown>>(obj: T) =>
 	Object.fromEntries(
@@ -79,8 +79,6 @@ export const ProviderAccountFormSchema = z.object({
 	// Required env vars: dynamic object of string values
 	required: z.record(z.string(), z.string().min(1, "Value is required")),
 });
-
-
 
 // export const MessageFormSchema = z.object({
 //     mailboxId: z.string("Mailbox ID must be a valid UUID"),

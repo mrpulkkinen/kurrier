@@ -6,7 +6,7 @@ import { createDrizzleSupabaseClient } from "./drizzle-client";
 import { secretsMeta } from "./schema";
 import { DecryptedEntity } from "./drizzle-types";
 import { AuthSession } from "@supabase/supabase-js";
-import {createDb} from "./init-db";
+import { createDb } from "./init-db";
 
 async function vaultCreateSecret(
 	tx: PgTransaction<any, any, any>,
@@ -83,21 +83,21 @@ export async function createSecret(
 }
 
 export async function getSecretAdmin(id: string) {
-    const db = createDb();
-    const meta = await db
-        .select()
-        .from(secretsMeta)
-        .where(eq(secretsMeta.id, id))
-        .limit(1)
-        .then((r) => r[0]);
+	const db = createDb();
+	const meta = await db
+		.select()
+		.from(secretsMeta)
+		.where(eq(secretsMeta.id, id))
+		.limit(1)
+		.then((r) => r[0]);
 
-    if (!meta) throw new Error("Secret metadata not found");
+	if (!meta) throw new Error("Secret metadata not found");
 
-    const vault = await db.transaction((tx) =>
-        vaultGetSecret(tx, meta.vaultSecret),
-    );
+	const vault = await db.transaction((tx) =>
+		vaultGetSecret(tx, meta.vaultSecret),
+	);
 
-    return { metaSecret: meta, vault };
+	return { metaSecret: meta, vault };
 }
 
 export async function getSecret(session: AuthSession, id: string) {

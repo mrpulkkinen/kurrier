@@ -1,28 +1,32 @@
 "use server";
 
 import {
-    createDrizzleSupabaseClient,
-    createSecret,
-    getSecret,
-    identities,
-    IdentityCreate, IdentityEntity,
-    IdentityInsertSchema, mailboxes,
-    providers,
-    providerSecrets,
-    secretsMeta,
-    smtpAccounts,
-    smtpAccountSecrets,
-    updateSecret,
+	createDrizzleSupabaseClient,
+	createSecret,
+	getSecret,
+	identities,
+	IdentityCreate,
+	IdentityEntity,
+	IdentityInsertSchema,
+	mailboxes,
+	providers,
+	providerSecrets,
+	secretsMeta,
+	smtpAccounts,
+	smtpAccountSecrets,
+	updateSecret,
 } from "@db";
 import {
-    DomainIdentityFormSchema,
-    FormState,
-    getPublicEnv,
-    handleAction, MailboxKindDisplay,
-    ProviderAccountFormSchema,
-    Providers,
-    PROVIDERS,
-    SmtpAccountFormSchema, SYSTEM_MAILBOXES,
+	DomainIdentityFormSchema,
+	FormState,
+	getPublicEnv,
+	handleAction,
+	MailboxKindDisplay,
+	ProviderAccountFormSchema,
+	Providers,
+	PROVIDERS,
+	SmtpAccountFormSchema,
+	SYSTEM_MAILBOXES,
 } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
 import { eq } from "drizzle-orm";
@@ -33,8 +37,8 @@ import { createMailer, DomainIdentity, VerifyResult } from "@providers";
 import { parseSecret } from "@/lib/utils";
 import { z } from "zod";
 import slugify from "@sindresorhus/slugify";
-import {rlsClient} from "@/lib/actions/clients";
-import { v4 as uuidv4 } from 'uuid';
+import { rlsClient } from "@/lib/actions/clients";
+import { v4 as uuidv4 } from "uuid";
 
 const DASHBOARD_PATH = "/dashboard/providers";
 
@@ -404,7 +408,10 @@ export async function verifyDomainIdentity(
 	});
 }
 
-const initializeEmailIdentity = async (data: Record<any, unknown>, id: string) => {
+const initializeEmailIdentity = async (
+	data: Record<any, unknown>,
+	id: string,
+) => {
 	return handleAction(async () => {
 		const [secret] = await fetchDecryptedSecrets({
 			linkTable: providerSecrets,
@@ -415,13 +422,13 @@ const initializeEmailIdentity = async (data: Record<any, unknown>, id: string) =
 		const decrypted = secret.parsedSecret;
 		const mailer = createMailer(secret?.provider?.type as Providers, decrypted);
 		const provider = await getProviderById(String(data?.providerId));
-        // const baseMetaData = {
-        //     identityId: id
-        // }
+		// const baseMetaData = {
+		//     identityId: id
+		// }
 		const response = await mailer.addEmail(
 			String(data?.value),
-            `inbound/${provider.ownerId}/${provider.id}/${id}`,
-            provider?.metaData?.verification ? provider?.metaData?.verification : {},
+			`inbound/${provider.ownerId}/${provider.id}/${id}`,
+			provider?.metaData?.verification ? provider?.metaData?.verification : {},
 		);
 		return {
 			success: true,
@@ -431,38 +438,38 @@ const initializeEmailIdentity = async (data: Record<any, unknown>, id: string) =
 };
 
 export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
-    // sanity check: only for email kind
-    if (emailIdentity.kind !== "email") return;
+	// sanity check: only for email kind
+	if (emailIdentity.kind !== "email") return;
 
-    // insert one row per mailbox kind
-    const rows = SYSTEM_MAILBOXES.map((m) => ({
-        ownerId: emailIdentity.ownerId,
-        identityId: emailIdentity.id,
-        kind: m.kind,
-        name: MailboxKindDisplay[m.kind],
-        slug: slugify(m.kind), // e.g. "inbox" → URL segment
-        isDefault: m.isDefault,
-    }));
+	// insert one row per mailbox kind
+	const rows = SYSTEM_MAILBOXES.map((m) => ({
+		ownerId: emailIdentity.ownerId,
+		identityId: emailIdentity.id,
+		kind: m.kind,
+		name: MailboxKindDisplay[m.kind],
+		slug: slugify(m.kind), // e.g. "inbox" → URL segment
+		isDefault: m.isDefault,
+	}));
 
-    const rls = await rlsClient();
-    await rls((tx) => {
-        return tx.insert(mailboxes).values(rows).onConflictDoNothing();
-    })
+	const rls = await rlsClient();
+	await rls((tx) => {
+		return tx.insert(mailboxes).values(rows).onConflictDoNothing();
+	});
 
-    // await db.insert(mailboxes).values(
-    //     SYSTEM_MAILBOXES.map((m) => ({
-    //         ownerId: identity.ownerId,
-    //         identityId: identity.id,
-    //         kind: m.kind,
-    //         name: m.name,
-    //         slug: m.slug,
-    //         isDefault: m.isDefault,
-    //     }))
-    // );
+	// await db.insert(mailboxes).values(
+	//     SYSTEM_MAILBOXES.map((m) => ({
+	//         ownerId: identity.ownerId,
+	//         identityId: identity.id,
+	//         kind: m.kind,
+	//         name: m.name,
+	//         slug: m.slug,
+	//         isDefault: m.isDefault,
+	//     }))
+	// );
 
-    console.log("rows", rows)
+	console.log("rows", rows);
 
-    return rows;
+	return rows;
 };
 
 export async function addNewEmailIdentity(
@@ -488,27 +495,30 @@ export async function addNewEmailIdentity(
 					.where(eq(identities.id, String(data.domainIdentityId))),
 			);
 
-            const id = uuidv4()
+			const id = uuidv4();
 			const initRes = await initializeEmailIdentity(data, id);
-            console.log("initRes", initRes)
+			console.log("initRes", initRes);
 			if (!initRes.success || !initRes.data) {
 				throw new Error("Failed to initialize email identity");
 			}
 			const { response, parsedVaultValues, secret } = initRes.data;
 
 			data.metaData = response;
-            data.id = id
+			data.id = id;
 			const identityData = IdentityInsertSchema.parse(data);
 			const [emailIdentity] = await rls((tx) =>
-				tx.insert(identities).values(identityData as IdentityCreate).returning(),
+				tx
+					.insert(identities)
+					.values(identityData as IdentityCreate)
+					.returning(),
 			);
 
 			const session = await currentSession();
 			parsedVaultValues.sendVerified = true;
 			parsedVaultValues.receiveVerified = domainIdentity.incomingDomain;
-            if (domainIdentity.incomingDomain){
-                await initializeMailboxes(emailIdentity)
-            }
+			if (domainIdentity.incomingDomain) {
+				await initializeMailboxes(emailIdentity);
+			}
 			await updateSecret(session, secret.metaId, {
 				value: JSON.stringify(parsedVaultValues),
 			});

@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
 		);
 	}
 
-
 	// 1) Confirm subscription
 	if (msg.Type === "SubscriptionConfirmation" && msg.SubscribeURL) {
 		try {

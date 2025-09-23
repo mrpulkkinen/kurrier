@@ -21,13 +21,14 @@ import {
 	UpdateReceiptRuleCommand,
 } from "@aws-sdk/client-ses";
 import {
-    S3Client,
-    HeadBucketCommand,
-    CreateBucketCommand,
-    PutBucketPolicyCommand,
-    CreateBucketCommandInput,
-    BucketLocationConstraint,
-    PutPublicAccessBlockCommand, PutBucketNotificationConfigurationCommand,
+	S3Client,
+	HeadBucketCommand,
+	CreateBucketCommand,
+	PutBucketPolicyCommand,
+	CreateBucketCommandInput,
+	BucketLocationConstraint,
+	PutPublicAccessBlockCommand,
+	PutBucketNotificationConfigurationCommand,
 } from "@aws-sdk/client-s3";
 import {
 	SNSClient,
@@ -126,8 +127,8 @@ export class SesMailer implements Mailer {
 			topicName: `${base}-ses-inbound-topic`,
 			ruleSetName: `${base}-rules`,
 			defaultRuleName: `${base}-inbound-default`,
-            s3NotifId: `${base}-s3-objectcreated-inbound`,
-        };
+			s3NotifId: `${base}-s3-objectcreated-inbound`,
+		};
 	}
 
 	private async ensureRuleSet(
@@ -175,7 +176,7 @@ export class SesMailer implements Mailer {
 
 	async addEmail(
 		address: string,
-        objectKeyPrefix: string,
+		objectKeyPrefix: string,
 		metaData?: Record<string, any>,
 	): Promise<EmailIdentity> {
 		const ses = new SES({ region: this.cfg.region, credentials: this.cfg });
@@ -249,7 +250,13 @@ export class SesMailer implements Mailer {
 			}),
 		);
 
-		return { address: normalized, ruleName, ruleSetName, created, slug: slugify(address) };
+		return {
+			address: normalized,
+			ruleName,
+			ruleSetName,
+			created,
+			slug: slugify(address),
+		};
 	}
 
 	async ensureWebhookSubscription(
@@ -389,17 +396,17 @@ export class SesMailer implements Mailer {
 				// 	Condition: { StringEquals: { "aws:SourceAccount": accountId } },
 				// 	// ArnLike: { "aws:SourceArn": `arn:aws:ses:${region}:${accountId}:receipt-rule-set/${ruleSetName}` }
 				// },
-                {
-                    Sid: "AllowS3Publish",
-                    Effect: "Allow",
-                    Principal: { Service: "s3.amazonaws.com" },
-                    Action: "sns:Publish",
-                    Resource: topicArn,
-                    Condition: {
-                        StringEquals: { "aws:SourceAccount": accountId },
-                        ArnLike: { "aws:SourceArn": `arn:aws:s3:::${bucket}` },
-                    },
-                },
+				{
+					Sid: "AllowS3Publish",
+					Effect: "Allow",
+					Principal: { Service: "s3.amazonaws.com" },
+					Action: "sns:Publish",
+					Resource: topicArn,
+					Condition: {
+						StringEquals: { "aws:SourceAccount": accountId },
+						ArnLike: { "aws:SourceArn": `arn:aws:s3:::${bucket}` },
+					},
+				},
 			],
 		};
 		await sns.send(
@@ -416,24 +423,26 @@ export class SesMailer implements Mailer {
 		);
 		console.log("subscribed", subscribed);
 
-        await s3.send(new PutBucketNotificationConfigurationCommand({
-            Bucket: bucket,
-            NotificationConfiguration: {
-                TopicConfigurations: [
-                    {
-                        Id: s3NotifId,
-                        TopicArn: topicArn,
-                        Events: ["s3:ObjectCreated:*"],
-                        Filter: {
-                            Key: {
-                                FilterRules: [{ Name: "prefix", Value: "inbound/" }],
-                            },
-                        },
-                    },
-                ],
-                // Omitting QueueConfigurations and LambdaFunctionConfigurations clears them.
-            },
-        }));
+		await s3.send(
+			new PutBucketNotificationConfigurationCommand({
+				Bucket: bucket,
+				NotificationConfiguration: {
+					TopicConfigurations: [
+						{
+							Id: s3NotifId,
+							TopicArn: topicArn,
+							Events: ["s3:ObjectCreated:*"],
+							Filter: {
+								Key: {
+									FilterRules: [{ Name: "prefix", Value: "inbound/" }],
+								},
+							},
+						},
+					],
+					// Omitting QueueConfigurations and LambdaFunctionConfigurations clears them.
+				},
+			}),
+		);
 
 		// Create the default inbound rule if missing
 		const { name: ruleSetNameInUse, usedExistingActive } =

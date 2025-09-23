@@ -1,20 +1,28 @@
 import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    pgPolicy,
-    pgEnum,
-    uniqueIndex,
-    boolean,
-    jsonb, integer, index,
+	pgTable,
+	uuid,
+	text,
+	timestamp,
+	pgPolicy,
+	pgEnum,
+	uniqueIndex,
+	boolean,
+	jsonb,
+	integer,
+	index,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
-import {identityStatusList, identityTypesList, mailboxKindsList, messageStatesList, providersList} from "@schema";
+import {
+	identityStatusList,
+	identityTypesList,
+	mailboxKindsList,
+	messageStatesList,
+	providersList,
+} from "@schema";
 import { DnsRecord } from "@providers";
-import {nanoid} from "nanoid";
+import { nanoid } from "nanoid";
 
 export const ProviderKindEnum = pgEnum("provider_kind", providersList);
 
@@ -308,9 +316,11 @@ export const identities = pgTable(
 			.default(sql`auth.uid()`),
 
 		kind: IdentityKindEnum("kind").notNull(),
-        publicId: text("public_id").notNull().$defaultFn(() => nanoid(10)),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
 
-        value: text("value").notNull(), // domain or email address
+		value: text("value").notNull(), // domain or email address
 		incomingDomain: boolean("incoming_domain").default(false),
 
 		domainIdentityId: uuid("domain_identity_id")
@@ -334,7 +344,7 @@ export const identities = pgTable(
 		// avoid duplicates per user for same kind+value
 		uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
 		// uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
-        uniqueIndex("uniq_identity_public_id").on(t.publicId),
+		uniqueIndex("uniq_identity_public_id").on(t.publicId),
 
 		// RLS: standard owner controls
 		pgPolicy("identities_select_own", {
@@ -360,7 +370,6 @@ export const identities = pgTable(
 		}),
 	],
 ).enableRLS();
-
 
 // export const mailboxes = pgTable(
 //     "mailboxes",
@@ -510,122 +519,140 @@ export const identities = pgTable(
 //     ],
 // ).enableRLS();
 
-
-
 export const mailboxes = pgTable(
-    "mailboxes",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
-        ownerId: uuid("owner_id")
-            .references(() => users.id)
-            .notNull()
-            .default(sql`auth.uid()`),
-        identityId: uuid("identity_id")
-            .references(() => identities.id, { onDelete: "cascade" })
-            .notNull(),
-        publicId: text("public_id").notNull().$defaultFn(() => nanoid(10)),
-        kind: MailboxKindEnum("kind").notNull().default("inbox"),
-        name: text("name"),
-        slug: text("slug"),
-        isDefault: boolean("is_default").notNull().default(false),
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-    },
-    (t) => [
-        uniqueIndex("uniq_mailbox_public_id").on(t.publicId),
-        uniqueIndex("uniq_default_mailbox_per_kind")
-            .on(t.identityId, t.kind)
-            .where(sql`${t.isDefault} IS TRUE`),
-        uniqueIndex("uniq_mailbox_slug_per_identity")
-            .on(t.identityId, t.slug)
-            .where(sql`${t.slug} IS NOT NULL`),
+	"mailboxes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
+		identityId: uuid("identity_id")
+			.references(() => identities.id, { onDelete: "cascade" })
+			.notNull(),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
+		kind: MailboxKindEnum("kind").notNull().default("inbox"),
+		name: text("name"),
+		slug: text("slug"),
+		isDefault: boolean("is_default").notNull().default(false),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		uniqueIndex("uniq_mailbox_public_id").on(t.publicId),
+		uniqueIndex("uniq_default_mailbox_per_kind")
+			.on(t.identityId, t.kind)
+			.where(sql`${t.isDefault} IS TRUE`),
+		uniqueIndex("uniq_mailbox_slug_per_identity")
+			.on(t.identityId, t.slug)
+			.where(sql`${t.slug} IS NOT NULL`),
 
-        pgPolicy("mailboxes_select_own", {
-            for: "select",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("mailboxes_insert_own", {
-            for: "insert",
-            to: authenticatedRole,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("mailboxes_update_own", {
-            for: "update",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("mailboxes_delete_own", {
-            for: "delete",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-    ],
+		pgPolicy("mailboxes_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
 ).enableRLS();
 
 export const messages = pgTable(
-    "messages",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
-        ownerId: uuid("owner_id")
-            .references(() => users.id)
-            .notNull()
-            .default(sql`auth.uid()`),
-        mailboxId: uuid("mailbox_id")
-            .references(() => mailboxes.id, { onDelete: "cascade" })
-            .notNull(),
-        publicId: text("public_id").notNull().$defaultFn(() => nanoid(10)),
-        subject: text("subject"),
-        snippet: text("snippet"),
-        fromName: text("from_name"),
-        fromEmail: text("from_email"),
+	"messages",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
+		mailboxId: uuid("mailbox_id")
+			.references(() => mailboxes.id, { onDelete: "cascade" })
+			.notNull(),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
+		subject: text("subject"),
+		snippet: text("snippet"),
+		fromName: text("from_name"),
+		fromEmail: text("from_email"),
 
-        text: text("text"),
-        textAsHtml: text("text_as_html"),
-        html: text("html"),
+		text: text("text"),
+		textAsHtml: text("text_as_html"),
+		html: text("html"),
 
-        to: jsonb("to").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
-        cc: jsonb("cc").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
-        bcc: jsonb("bcc").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
-        date: timestamp("date", { withTimezone: true }),
-        sizeBytes: integer("size_bytes"),
-        seen: boolean("seen").notNull().default(false),
-        answered: boolean("answered").notNull().default(false),
-        flagged: boolean("flagged").notNull().default(false),
-        draft: boolean("draft").notNull().default(false),
-        hasAttachments: boolean("has_attachments").notNull().default(false),
-        state: MessageStateEnum("state").notNull().default("normal"),
-        headersJson: jsonb("headers_json").$type<Record<string, string> | null>().default(null),
-        rawStorageKey: text("raw_storage_key"),
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-    },
-    (t) => [
-        uniqueIndex("uniq_message_public_id").on(t.publicId),
-        index("idx_messages_mailbox_date").on(t.mailboxId, t.date),
-        index("idx_messages_mailbox_seen_date").on(t.mailboxId, t.seen, t.date),
+		to: jsonb("to")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		cc: jsonb("cc")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		bcc: jsonb("bcc")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		date: timestamp("date", { withTimezone: true }),
+		sizeBytes: integer("size_bytes"),
+		seen: boolean("seen").notNull().default(false),
+		answered: boolean("answered").notNull().default(false),
+		flagged: boolean("flagged").notNull().default(false),
+		draft: boolean("draft").notNull().default(false),
+		hasAttachments: boolean("has_attachments").notNull().default(false),
+		state: MessageStateEnum("state").notNull().default("normal"),
+		headersJson: jsonb("headers_json")
+			.$type<Record<string, string> | null>()
+			.default(null),
+		rawStorageKey: text("raw_storage_key"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		uniqueIndex("uniq_message_public_id").on(t.publicId),
+		index("idx_messages_mailbox_date").on(t.mailboxId, t.date),
+		index("idx_messages_mailbox_seen_date").on(t.mailboxId, t.seen, t.date),
 
-        pgPolicy("messages_select_own", {
-            for: "select",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("messages_insert_own", {
-            for: "insert",
-            to: authenticatedRole,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("messages_update_own", {
-            for: "update",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("messages_delete_own", {
-            for: "delete",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-    ],
+		pgPolicy("messages_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
 ).enableRLS();
