@@ -842,7 +842,10 @@ export default function MailIdentities({
 												size="xs"
 												className="flex-1 sm:flex-none"
 												loading={sendTesting}
-												onClick={() => initTestEmail(userIdentity, decrypted)}
+                                                href={`/mail/${userIdentity.identities.publicId}/inbox`}
+                                                target={"_blank"}
+                                                component="a"
+												// onClick={() => initTestEmail(userIdentity, decrypted)}
 											>
 												Mailbox
 											</Button>

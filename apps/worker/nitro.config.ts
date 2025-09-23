@@ -15,5 +15,5 @@ export default defineNitroConfig({
 	},
 	externals: {
 		inline: ["@db", "@schema", "@providers"],
-	},
+	}
 });
