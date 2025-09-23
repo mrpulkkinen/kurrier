@@ -8,7 +8,7 @@ declare global {
 	var _db_rls: ReturnType<typeof drizzle> | undefined;
 }
 
-const createDb = () => {
+export const createDb = () => {
 	const { DATABASE_URL } = getServerEnv();
 	if (!global._db) {
 		const client = postgres(String(DATABASE_URL), { prepare: false });
@@ -17,7 +17,7 @@ const createDb = () => {
 	return global._db;
 };
 
-const createDbRls = () => {
+export const createDbRls = () => {
 	const { DATABASE_RLS_URL } = getServerEnv();
 	if (!global._db_rls) {
 		const client = postgres(String(DATABASE_RLS_URL), { prepare: false });

@@ -1,0 +1,2 @@
+ALTER TABLE "identities" ADD COLUMN "public_id" text DEFAULT left(md5(gen_random_uuid()::text), 12) NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "uniq_identity_public_id" ON "identities" USING btree ("public_id");

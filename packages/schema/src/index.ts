@@ -4,3 +4,4 @@ export * from "./types/form";
 export * from "./types/providers";
 export * from "./types/identities";
 export * from "./types/form-shapes";
+export * from "./types/mail";

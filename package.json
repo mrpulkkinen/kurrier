@@ -11,27 +11,29 @@
 	},
 	"packageManager": "pnpm@8.14.0+sha1.bb42032ff80dba5f9245bc1b03470d2fa0b7fb2f",
 	"devDependencies": {
-		"@biomejs/biome": "2.2.0",
-		"@dotenvx/dotenvx": "^1.49.0",
+		"@biomejs/biome": "2.2.4",
+		"@dotenvx/dotenvx": "^1.50.1",
 		"@types/pg": "^8.15.5",
 		"concurrently": "^9.2.1",
 		"drizzle-kit": "^0.31.4",
 		"tsx": "^4.20.5"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.890.0",
-		"@aws-sdk/client-ses": "^3.888.0",
-		"@aws-sdk/client-sesv2": "^3.888.0",
-		"@aws-sdk/client-sns": "^3.890.0",
-		"@aws-sdk/client-sts": "^3.890.0",
+		"@aws-sdk/client-s3": "^3.893.0",
+		"@aws-sdk/client-ses": "^3.893.0",
+		"@aws-sdk/client-sesv2": "^3.893.0",
+		"@aws-sdk/client-sns": "^3.893.0",
+		"@aws-sdk/client-sts": "^3.893.0",
 		"@sindresorhus/slugify": "^3.0.0",
-		"@supabase/supabase-js": "^2.57.0",
+		"@supabase/supabase-js": "^2.57.4",
 		"drizzle-orm": "^0.44.5",
 		"drizzle-zod": "^0.8.3",
+		"nanoid": "^5.1.5",
 		"pg": "^8.16.3",
 		"postgres": "^3.4.7",
 		"ulid": "^3.0.1",
+		"uuid": "^13.0.0",
 		"validator": "^13.15.15",
-		"zod": "^4.1.5"
+		"zod": "^4.1.11"
 	}
 }

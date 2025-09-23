@@ -127,6 +127,7 @@ export type EmailIdentity = {
 	ruleName: string;
 	ruleSetName: string;
 	created: boolean;
+	slug: string;
 };
 
 export interface Mailer {
@@ -140,7 +141,11 @@ export interface Mailer {
 		mailFrom?: string,
 		incoming?: boolean,
 	): Promise<DomainIdentity>;
-	addEmail(email: string, metaData?: Record<any, any>): Promise<EmailIdentity>;
+	addEmail(
+		email: string,
+		objectKeyPrefix: string,
+		metaData?: Record<any, any>,
+	): Promise<EmailIdentity>;
 	removeEmail(
 		ruleSetName: string,
 		ruleName: string,

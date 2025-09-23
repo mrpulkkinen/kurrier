@@ -28,6 +28,7 @@ import {
 	CreateBucketCommandInput,
 	BucketLocationConstraint,
 	PutPublicAccessBlockCommand,
+	PutBucketNotificationConfigurationCommand,
 } from "@aws-sdk/client-s3";
 import {
 	SNSClient,
@@ -126,6 +127,7 @@ export class SesMailer implements Mailer {
 			topicName: `${base}-ses-inbound-topic`,
 			ruleSetName: `${base}-rules`,
 			defaultRuleName: `${base}-inbound-default`,
+			s3NotifId: `${base}-s3-objectcreated-inbound`,
 		};
 	}
 
@@ -174,6 +176,7 @@ export class SesMailer implements Mailer {
 
 	async addEmail(
 		address: string,
+		objectKeyPrefix: string,
 		metaData?: Record<string, any>,
 	): Promise<EmailIdentity> {
 		const ses = new SES({ region: this.cfg.region, credentials: this.cfg });
@@ -201,14 +204,15 @@ export class SesMailer implements Mailer {
 			Enabled: true,
 			Recipients: [normalized],
 			Actions: [
+				{ S3Action: { BucketName: bucket, ObjectKeyPrefix: objectKeyPrefix } },
 				// { S3Action: { BucketName: bucket, ObjectKeyPrefix: `inbound/${slugify(address)}` } },
-				{
-					S3Action: {
-						BucketName: bucket,
-						ObjectKeyPrefix: `inbound/${address}`,
-					},
-				},
-				{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
+				// {
+				// 	S3Action: {
+				// 		BucketName: bucket,
+				// 		ObjectKeyPrefix: `inbound/${address}`,
+				// 	},
+				// },
+				// { SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
 				{ StopAction: { Scope: "RuleSet" } },
 			],
 			ScanEnabled: true,
@@ -246,7 +250,13 @@ export class SesMailer implements Mailer {
 			}),
 		);
 
-		return { address: normalized, ruleName, ruleSetName, created };
+		return {
+			address: normalized,
+			ruleName,
+			ruleSetName,
+			created,
+			slug: slugify(address),
+		};
 	}
 
 	async ensureWebhookSubscription(
@@ -299,7 +309,7 @@ export class SesMailer implements Mailer {
 			new GetCallerIdentityCommand({}),
 		);
 
-		const { bucket, topicName, ruleSetName, defaultRuleName } =
+		const { bucket, topicName, ruleSetName, defaultRuleName, s3NotifId } =
 			this.baseNames(id);
 
 		let bucketExists = false;
@@ -377,14 +387,25 @@ export class SesMailer implements Mailer {
 		const topicPolicy = {
 			Version: "2012-10-17",
 			Statement: [
+				// {
+				// 	Sid: "AllowSESPublish",
+				// 	Effect: "Allow",
+				// 	Principal: { Service: "ses.amazonaws.com" },
+				// 	Action: "sns:Publish",
+				// 	Resource: topicArn,
+				// 	Condition: { StringEquals: { "aws:SourceAccount": accountId } },
+				// 	// ArnLike: { "aws:SourceArn": `arn:aws:ses:${region}:${accountId}:receipt-rule-set/${ruleSetName}` }
+				// },
 				{
-					Sid: "AllowSESPublish",
+					Sid: "AllowS3Publish",
 					Effect: "Allow",
-					Principal: { Service: "ses.amazonaws.com" },
+					Principal: { Service: "s3.amazonaws.com" },
 					Action: "sns:Publish",
 					Resource: topicArn,
-					Condition: { StringEquals: { "aws:SourceAccount": accountId } },
-					// ArnLike: { "aws:SourceArn": `arn:aws:ses:${region}:${accountId}:receipt-rule-set/${ruleSetName}` }
+					Condition: {
+						StringEquals: { "aws:SourceAccount": accountId },
+						ArnLike: { "aws:SourceArn": `arn:aws:s3:::${bucket}` },
+					},
 				},
 			],
 		};
@@ -398,9 +419,30 @@ export class SesMailer implements Mailer {
 		const { subscribed } = await this.ensureWebhookSubscription(
 			sns,
 			topicArn,
-			`${metaData.WEB_URL}/api/v1/hooks/aws/sns`,
+			`${metaData.WEB_URL}/api/v1/hooks/aws/ses/inbound`,
 		);
 		console.log("subscribed", subscribed);
+
+		await s3.send(
+			new PutBucketNotificationConfigurationCommand({
+				Bucket: bucket,
+				NotificationConfiguration: {
+					TopicConfigurations: [
+						{
+							Id: s3NotifId,
+							TopicArn: topicArn,
+							Events: ["s3:ObjectCreated:*"],
+							Filter: {
+								Key: {
+									FilterRules: [{ Name: "prefix", Value: "inbound/" }],
+								},
+							},
+						},
+					],
+					// Omitting QueueConfigurations and LambdaFunctionConfigurations clears them.
+				},
+			}),
+		);
 
 		// Create the default inbound rule if missing
 		const { name: ruleSetNameInUse, usedExistingActive } =
@@ -425,7 +467,7 @@ export class SesMailer implements Mailer {
 								{
 									S3Action: { BucketName: bucket, ObjectKeyPrefix: "inbound/" },
 								},
-								{ SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
+								// { SNSAction: { TopicArn: topicArn, Encoding: "UTF-8" } },
 								{ StopAction: { Scope: "RuleSet" } },
 							],
 							ScanEnabled: true,

@@ -8,17 +8,28 @@ import {
 	uniqueIndex,
 	boolean,
 	jsonb,
+	integer,
+	index,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
-import { identityStatusList, identityTypesList, providersList } from "@schema";
+import {
+	identityStatusList,
+	identityTypesList,
+	mailboxKindsList,
+	messageStatesList,
+	providersList,
+} from "@schema";
 import { DnsRecord } from "@providers";
+import { nanoid } from "nanoid";
 
 export const ProviderKindEnum = pgEnum("provider_kind", providersList);
 
 export const IdentityKindEnum = pgEnum("identity_kind", identityTypesList);
 export const IdentityStatusEnum = pgEnum("identity_status", identityStatusList);
+export const MailboxKindEnum = pgEnum("mailbox_kind", mailboxKindsList);
+export const MessageStateEnum = pgEnum("message_state", messageStatesList);
 
 export const secretsMeta = pgTable(
 	"secrets_meta",
@@ -305,6 +316,10 @@ export const identities = pgTable(
 			.default(sql`auth.uid()`),
 
 		kind: IdentityKindEnum("kind").notNull(),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
+
 		value: text("value").notNull(), // domain or email address
 		incomingDomain: boolean("incoming_domain").default(false),
 
@@ -329,6 +344,7 @@ export const identities = pgTable(
 		// avoid duplicates per user for same kind+value
 		uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
 		// uniqueIndex("uniq_identity_per_user").on(t.ownerId, t.kind, t.value),
+		uniqueIndex("uniq_identity_public_id").on(t.publicId),
 
 		// RLS: standard owner controls
 		pgPolicy("identities_select_own", {
@@ -355,12 +371,288 @@ export const identities = pgTable(
 	],
 ).enableRLS();
 
-// export const emailsTable = pgTable("emails", {
-// 	id: uuid().defaultRandom().primaryKey(),
-// 	user_id: uuid("user_id")
-// 		.references(() => users.id)
-// 		.notNull(),
-// 	created: timestamp("created", { mode: "string", withTimezone: true })
-// 		.defaultNow()
-// 		.notNull(),
-// });
+// export const mailboxes = pgTable(
+//     "mailboxes",
+//     {
+//         id: uuid("id").defaultRandom().primaryKey(),
+//
+//         ownerId: uuid("owner_id")
+//             .references(() => users.id)
+//             .notNull()
+//             .default(sql`auth.uid()`),
+//
+//         identityId: uuid("identity_id")
+//             .references(() => identities.id, { onDelete: "cascade" })
+//             .notNull(),
+//
+//         // short, URL-safe id
+//         publicId: text("public_id").notNull().default(shortIdDefault),
+//
+//         kind: MailboxKindEnum("kind").notNull().default("inbox"),
+//         name: text("name"),          // for custom folders
+//         slug: text("slug"),          // optional pretty handle for custom folders
+//
+//         isDefault: boolean("is_default").notNull().default(false),
+//
+//         createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+//         updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+//     },
+//     (t) => [
+//         uniqueIndex("uniq_mailbox_public_id").on(t.publicId),
+//         // Keep only one default of a given kind per identity (optional)
+//         uniqueIndex("uniq_default_mailbox_per_kind")
+//             .on(t.identityId, t.kind)
+//             .where(sql`${t.isDefault} IS TRUE`),
+//
+//         pgPolicy("mailboxes_select_own", {
+//             for: "select",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("mailboxes_insert_own", {
+//             for: "insert",
+//             to: authenticatedRole,
+//             withCheck: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("mailboxes_update_own", {
+//             for: "update",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//             withCheck: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("mailboxes_delete_own", {
+//             for: "delete",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//     ],
+// ).enableRLS();
+//
+//
+//
+// export const messages = pgTable(
+//     "messages",
+//     {
+//         id: uuid("id").defaultRandom().primaryKey(),
+//
+//         ownerId: uuid("owner_id")
+//             .references(() => users.id)
+//             .notNull()
+//             .default(sql`auth.uid()`),
+//
+//         mailboxId: uuid("mailbox_id")
+//             .references(() => mailboxes.id, { onDelete: "cascade" })
+//             .notNull(),
+//
+//         // URL id
+//         publicId: text("public_id").notNull().default(shortIdDefault),
+//
+//         // Provider-sourced identifiers for sync/dedupe
+//         provider: text("provider"),                       // "ses" | "imap" | "smtp" | "webhook"
+//         providerMessageId: text("provider_message_id"),   // SES MessageId, etc.
+//         imapUid: integer("imap_uid"),                     // per-folder UID
+//         imapUidValidity: integer("imap_uidvalidity"),
+//
+//         // Basic metadata
+//         subject: text("subject"),
+//         snippet: text("snippet"), // cached preview
+//         fromName: text("from_name"),
+//         fromEmail: text("from_email"),
+//         // Store recipient lists as JSON arrays of {name?, email}
+//         to: jsonb("to").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
+//         cc: jsonb("cc").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
+//         bcc: jsonb("bcc").$type<Array<{ name?: string; email: string }>>().default(sql`'[]'::jsonb`),
+//
+//         date: timestamp("date", { withTimezone: true }), // RFC822 parsed date
+//         sizeBytes: integer("size_bytes"),
+//
+//         // Flags
+//         seen: boolean("seen").notNull().default(false),
+//         answered: boolean("answered").notNull().default(false),
+//         flagged: boolean("flagged").notNull().default(false),
+//         draft: boolean("draft").notNull().default(false),
+//         hasAttachments: boolean("has_attachments").notNull().default(false),
+//
+//         // Optional state + raw storage pointers
+//         state: MessageStateEnum("state").notNull().default("normal"),
+//         headersJson: jsonb("headers_json").$type<Record<string, string> | null>().default(null),
+//         rawStorageKey: text("raw_storage_key"), // e.g., s3://bucket/key or supabase storage key
+//
+//         createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+//         updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+//     },
+//     (t) => [
+//         uniqueIndex("uniq_message_public_id").on(t.publicId),
+//
+//         // Common list view query: by mailbox + date desc
+//         // (Drizzle doesn't define order in index, but Postgres will still use it)
+//         uniqueIndex("idx_messages_mailbox_date").on(t.mailboxId, t.date),
+//
+//         // Fast unseen filter
+//         uniqueIndex("idx_messages_mailbox_seen_date").on(t.mailboxId, t.seen, t.date),
+//
+//         // Provider lookups / dedupe
+//         uniqueIndex("idx_messages_provider_id").on(t.provider, t.providerMessageId),
+//         uniqueIndex("idx_messages_imap_uid").on(t.mailboxId, t.imapUid, t.imapUidValidity),
+//
+//         pgPolicy("messages_select_own", {
+//             for: "select",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("messages_insert_own", {
+//             for: "insert",
+//             to: authenticatedRole,
+//             withCheck: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("messages_update_own", {
+//             for: "update",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//             withCheck: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//         pgPolicy("messages_delete_own", {
+//             for: "delete",
+//             to: authenticatedRole,
+//             using: sql`${t.ownerId} = ${authUid}`,
+//         }),
+//     ],
+// ).enableRLS();
+
+export const mailboxes = pgTable(
+	"mailboxes",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
+		identityId: uuid("identity_id")
+			.references(() => identities.id, { onDelete: "cascade" })
+			.notNull(),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
+		kind: MailboxKindEnum("kind").notNull().default("inbox"),
+		name: text("name"),
+		slug: text("slug"),
+		isDefault: boolean("is_default").notNull().default(false),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		uniqueIndex("uniq_mailbox_public_id").on(t.publicId),
+		uniqueIndex("uniq_default_mailbox_per_kind")
+			.on(t.identityId, t.kind)
+			.where(sql`${t.isDefault} IS TRUE`),
+		uniqueIndex("uniq_mailbox_slug_per_identity")
+			.on(t.identityId, t.slug)
+			.where(sql`${t.slug} IS NOT NULL`),
+
+		pgPolicy("mailboxes_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("mailboxes_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
+).enableRLS();
+
+export const messages = pgTable(
+	"messages",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
+		mailboxId: uuid("mailbox_id")
+			.references(() => mailboxes.id, { onDelete: "cascade" })
+			.notNull(),
+		publicId: text("public_id")
+			.notNull()
+			.$defaultFn(() => nanoid(10)),
+		subject: text("subject"),
+		snippet: text("snippet"),
+		fromName: text("from_name"),
+		fromEmail: text("from_email"),
+
+		text: text("text"),
+		textAsHtml: text("text_as_html"),
+		html: text("html"),
+
+		to: jsonb("to")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		cc: jsonb("cc")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		bcc: jsonb("bcc")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		date: timestamp("date", { withTimezone: true }),
+		sizeBytes: integer("size_bytes"),
+		seen: boolean("seen").notNull().default(false),
+		answered: boolean("answered").notNull().default(false),
+		flagged: boolean("flagged").notNull().default(false),
+		draft: boolean("draft").notNull().default(false),
+		hasAttachments: boolean("has_attachments").notNull().default(false),
+		state: MessageStateEnum("state").notNull().default("normal"),
+		headersJson: jsonb("headers_json")
+			.$type<Record<string, string> | null>()
+			.default(null),
+		rawStorageKey: text("raw_storage_key"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		uniqueIndex("uniq_message_public_id").on(t.publicId),
+		index("idx_messages_mailbox_date").on(t.mailboxId, t.date),
+		index("idx_messages_mailbox_seen_date").on(t.mailboxId, t.seen, t.date),
+
+		pgPolicy("messages_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("messages_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
+).enableRLS();
