@@ -1,12 +1,14 @@
 "use client";
 import React, { useRef, useState } from "react";
-import { MessageEntity } from "@db";
+import {MessageAttachmentEntity, MessageEntity} from "@db";
 import slugify from "@sindresorhus/slugify";
 import { ChevronDown, EllipsisVertical, Reply, Star } from "lucide-react";
 import { Temporal } from "@js-temporal/polyfill";
 import dynamic from "next/dynamic";
 import { ActionIcon } from "@mantine/core";
 import { EmailEditorHandle } from "@/components/mailbox/default/editor/email-editor";
+import EditorAttachmentItem from "@/components/mailbox/default/editor/editor-attachment-item";
+import {PublicConfig} from "@schema";
 const EmailEditor = dynamic(
 	() => import("@/components/mailbox/default/editor/email-editor"),
 	{
@@ -82,9 +84,13 @@ function scrollToEditor(
 
 function EmailRenderer({
 	message,
+    attachments,
+    publicConfig,
 	children,
 }: {
 	message: MessageEntity;
+    attachments: MessageAttachmentEntity[];
+    publicConfig: PublicConfig;
 	children?: React.ReactNode;
 }) {
 	const formatted = Temporal.Instant.from(message.createdAt.toISOString())
@@ -110,13 +116,13 @@ function EmailRenderer({
 					<div>
 						<div className={"mt-4 flex gap-1 items-center"}>
 							<div className={"text-sm font-semibold capitalize"}>
-								{message.fromName
-									? message.fromName
-									: slugify(String(message.fromEmail), { separator: " " })}
+								{message?.from?.value[0]?.name
+									? message?.from?.value[0]?.name
+									: slugify(String(message?.from?.value[0]?.address), { separator: " " })}
 							</div>
 							<div
 								className={"text-xs"}
-							>{`<${message.fromEmail ?? message.fromEmail}>`}</div>
+							>{`<${message?.from?.value[0]?.address ?? message?.from?.value[0]?.name}>`}</div>
 						</div>
 						<div className={"flex gap-1 items-center"}>
 							<div className={"text-xs"}>to support</div>
@@ -147,6 +153,17 @@ function EmailRenderer({
 			</div>
 
 			{children}
+
+            <div className={"border-t border-dotted"}>
+                <div className={"font-semibold my-4"}>{attachments?.length} attachments</div>
+                <div className={"flex flex-col"}>
+                    {attachments?.map((attachment) => {
+                        return <EditorAttachmentItem key={attachment.id} attachment={attachment} publicConfig={publicConfig} />
+                    })}
+
+                </div>
+
+            </div>
 
 			{showEditor && (
 				<div>

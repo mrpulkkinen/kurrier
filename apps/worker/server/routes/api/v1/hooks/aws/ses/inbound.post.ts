@@ -1,18 +1,124 @@
 import { defineEventHandler, readRawBody } from "h3";
 import {
-	db,
-	decryptAdminSecrets,
-	mailboxes,
-	MessageCreate,
-	messages,
-	providerSecrets,
+    db,
+    decryptAdminSecrets,
+    mailboxes, MessageAttachmentCreate, MessageAttachmentInsertSchema, messageAttachments,
+    MessageCreate, MessageInsertSchema, messages, providers,
+    // messages,
+    providerSecrets, threads,
 } from "@db";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-import { simpleParser } from "mailparser";
-import { and, eq } from "drizzle-orm";
-import { createClient } from "@supabase/supabase-js";
-import { getPublicEnv, getServerEnv } from "@schema";
+import {Attachment, ParsedMail, simpleParser} from "mailparser";
+import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {getPublicEnv, getServerEnv} from "@schema";
+import {createClient} from "@supabase/supabase-js";
+
+import { randomUUID } from "crypto";
+
+function generateFileName(attachment: Attachment) {
+    // derive extension from filename or contentType
+    const ext =
+        attachment.filename?.split(".").pop()?.toLowerCase() ||
+        attachment.contentType?.split("/")[1]?.split("+")[0] ||
+        "bin";
+
+    return `${randomUUID()}.${ext}`;
+}
+
+async function createOrInitializeThread(parsed: ParsedMail & {
+    ownerId: string;
+    mailboxId: string;
+}) {
+    const { ownerId, mailboxId } = parsed;
+
+    // Build candidate parent ids from headers
+    const inReplyTo = parsed.inReplyTo?.trim() || null;
+
+    // mailparser can give references as string | string[]
+    const referencesArr = Array.isArray(parsed.references)
+        ? parsed.references
+        : parsed.references
+            ? [parsed.references]
+            : [];
+
+    // Only keep well-formed <...> Message-IDs and dedupe
+    const candidates = Array.from(
+        new Set(
+            [inReplyTo, ...referencesArr]
+                .filter(Boolean)
+                .map((s) => String(s))
+        )
+    );
+
+    // In a transaction so thread creation is atomic
+    return db.transaction(async (tx) => {
+        // Try direct parent first (inReplyTo), then fall back to any reference,
+        // newest first if multiple hit.
+        let existingThread = null as null | typeof threads.$inferSelect;
+
+        if (candidates.length > 0) {
+            const parentMsgs = await tx
+                .select({
+                    id: messages.id,
+                    threadId: messages.threadId,
+                    messageId: messages.messageId,
+                    date: messages.date,
+                })
+                .from(messages)
+                .where(
+                    and(
+                        eq(messages.mailboxId, mailboxId),
+                        inArray(messages.messageId, candidates)
+                    )
+                )
+                .orderBy(desc(messages.date ?? sql`now()`));
+
+            if (parentMsgs.length) {
+                // Prefer the exact inReplyTo match, otherwise take the most recent hit
+                const direct = inReplyTo
+                    ? parentMsgs.find((m) => m.messageId === inReplyTo)
+                    : null;
+                const chosen = direct ?? parentMsgs[0];
+
+                if (chosen.threadId) {
+                    const [t] = await tx
+                        .select()
+                        .from(threads)
+                        .where(
+                            and(eq(threads.id, chosen.threadId), eq(threads.mailboxId, mailboxId))
+                        );
+                    if (t) existingThread = t;
+                }
+            }
+        }
+
+        if (existingThread) {
+            return existingThread;
+        }
+
+        // No parent found → create a new thread (minimal fields)
+        const [newThread] = await tx
+            .insert(threads)
+            .values({
+                ownerId,
+                mailboxId,
+                lastMessageDate: parsed.date ?? new Date(),
+                // messageCount can be incremented after you insert the message
+            })
+            .returning();
+
+        return newThread;
+    });
+}
+
+
+const publicConfig = getPublicEnv();
+const serverConfig = getServerEnv();
+const supabase = createClient(
+    publicConfig.SUPABASE_DOMAIN,
+    serverConfig.SUPABASE_SERVICE_ROLE_KEY,
+);
 
 export default defineEventHandler(async (event) => {
 	try {
@@ -66,85 +172,153 @@ export default defineEventHandler(async (event) => {
 			const getObj = await s3.send(
 				new GetObjectCommand({ Bucket: bucket, Key: key }),
 			);
-			const rawEmail = await getObj?.Body?.transformToString("utf-8");
+			const rawEmail = await getObj?.Body?.transformToString("utf-8") || "";
 
 			const parsed = await simpleParser(rawEmail);
+            const headers = parsed.headers as Map<string, any>;
 
-			const [inbox] = await db
+            console.dir(parsed, { depth: 10 })
+
+            const messageId = parsed.messageId || String(headers.get("message-id") || "").trim();
+            if (!messageId) throw new Error("Missing message-id");
+
+			const userMailboxes = await db
 				.select()
 				.from(mailboxes)
-				.where(
-					and(
-						eq(mailboxes.identityId, identityId),
-						eq(mailboxes.slug, "inbox"),
-					),
-				);
+				.where(eq(mailboxes.identityId, identityId));
 
-			const fromList = parsed.from?.value ?? [];
-			const toList = parsed.to?.value ?? [];
-			const ccList = parsed.cc?.value ?? [];
-			const bccList = parsed.bcc?.value ?? [];
+            const inbox = userMailboxes.find(m => m.kind === "inbox");
+            const spamMb = userMailboxes.find(m => m.kind === "spam");
+            // const junkMb = userMailboxes.find(m => m.kind === "junk");
+            const [provider] = await db.select().from(providers).where(eq(providers.id, providerId))
 
-			const messagePayload: MessageCreate = {
-				ownerId,
-				mailboxId: inbox.id,
+            if (!inbox) throw new Error("No inbox mailbox found for identity " + identityId);
+            if (!spamMb) throw new Error("No spam mailbox found for identity " + identityId);
+            if (!provider) throw new Error("No provider found for id " + providerId);
 
-				subject: parsed.subject || "(no subject)",
-				snippet: parsed.text?.slice(0, 200) ?? "",
+            let providerSaysSpam = false;
+            if (provider?.type === "ses") {
+                const spamVerdict  = String(headers.get("x-ses-spam-verdict")  ?? "").trim().toUpperCase();
+                const virusVerdict = String(headers.get("x-ses-virus-verdict") ?? "").trim().toUpperCase();
+                // mark as spam if either is not PASS
+                providerSaysSpam =
+                    (spamVerdict !== "" && spamVerdict !== "PASS") ||
+                    (virusVerdict !== "" && virusVerdict !== "PASS");
+            }
 
-				fromName: fromList[0]?.name ?? "",
-				fromEmail: fromList[0]?.address ?? "",
+            const authRes = String(headers.get("authentication-results") ?? "");
+            const spfFail   = /spf=\s*fail/i.test(authRes);
+            const dkimFail  = /dkim=\s*fail/i.test(authRes);
+            const dmarcFail = /dmarc=\s*fail/i.test(authRes);
+            const authSaysJunk =
+                (spfFail && dkimFail && dmarcFail) || dmarcFail;
 
-				to: toList.map((x) => ({ name: x.name, email: x.address })),
-				cc: ccList.map((x) => ({ name: x.name, email: x.address })),
-				bcc: bccList.map((x) => ({ name: x.name, email: x.address })),
 
-				date: parsed.date ? new Date(parsed.date) : new Date(),
-				sizeBytes: size,
+            console.log("providerSaysSpam", providerSaysSpam)
+            console.log("authSaysJunk", authSaysJunk)
 
-				seen: false,
-				answered: false,
-				flagged: false,
-				draft: false,
 
-				text: parsed.text || "",
-				html: parsed.html || "",
-				textAsHtml: parsed.textAsHtml || "",
+            let targetMailboxId = inbox.id;
+            if (providerSaysSpam && spamMb){
+                targetMailboxId = spamMb.id
+            }
+            // else if (authSaysJunk && junkMb)       targetMailboxId = junkMb.id;
 
-				hasAttachments: (parsed.attachments?.length ?? 0) > 0,
-				state: "normal",
 
-				headersJson: Object.fromEntries(
-					(parsed.headers as Map<string, any>)?.entries?.() ?? [],
-				),
+            console.log("****************************************************************")
+            console.log("****************************************************************")
+            console.log("****************************************************************")
 
-				rawStorageKey: key,
-			};
 
-			const message = await db
-				.insert(messages)
-				.values(messagePayload)
-				.returning();
 
-			const publicConfig = getPublicEnv();
-			const serverConfig = getServerEnv();
-			const supabase = createClient(
-				publicConfig.SUPABASE_DOMAIN,
-				serverConfig.SUPABASE_SERVICE_ROLE_KEY,
-			);
+            const thread = await createOrInitializeThread({
+                ...parsed,
+                ownerId,
+                mailboxId: targetMailboxId,
+            });
 
-			const myChannel = supabase.channel("test-channel");
 
-			myChannel.subscribe((status) => {
-				if (status !== "SUBSCRIBED") {
-					return null;
-				}
-				myChannel.send({
-					type: "broadcast",
-					event: "shout",
-					payload: { message },
-				});
-			});
+            const decoratedParsed = {
+                ...parsed,
+                mailboxId: targetMailboxId,
+                threadId: thread.id,
+                ownerId: ownerId,
+                headersJson: Object.fromEntries(parsed.headers as Map<string, any>),
+                hasAttachments: (parsed.attachments?.length ?? 0) > 0,
+                rawStorageKey: key,
+                references: Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : null),
+                seen: false,
+                answered: false,
+                flagged: false,
+                draft: false
+            } as MessageCreate | ParsedMail
+
+
+            const messagePayload = MessageInsertSchema.parse(decoratedParsed)
+            // console.dir(messagePayload, { depth: 10 })
+
+
+
+            const [message] = await db
+                .insert(messages)
+                .values(messagePayload)
+                .onConflictDoNothing()
+                .returning();
+
+
+            for (const attachment of parsed.attachments ?? []) {
+                const bucket = 'attachments'; // your private bucket
+                const fileName = generateFileName(attachment)
+                const objectPath = `private/${ownerId}/${message.id}/${fileName}`;
+                const { error, data } = await supabase.storage
+                    .from(bucket)
+                    .upload(objectPath, attachment.content, {
+                        contentType: attachment.contentType || 'application/octet-stream',
+                        upsert: false,                  // avoid overwriting; flip to true if desired
+                        cacheControl: '31536000',       // fine for immutable blobs
+                    });
+
+                console.log("error" , error)
+                console.log("data" , data)
+
+                const candidate: MessageAttachmentCreate = {
+                    ownerId,
+                    messageId: message.id,
+                    bucketId: "attachments",
+                    path: data?.path,
+                    filenameOriginal: attachment.filename || null,
+                    contentType: attachment.contentType || "application/octet-stream",
+                    sizeBytes: Number(attachment.size ?? attachment.content?.length ?? 0),
+                    checksum: attachment.checksum || null,
+                    cid: attachment.cid || null,
+                    isInline: attachment.contentDisposition === "inline" || !!attachment.cid || false,
+                    disposition: attachment.contentDisposition || "attachment",
+                } as MessageAttachmentCreate;
+
+                const parsedRow = MessageAttachmentInsertSchema.parse(candidate);
+
+                // 3) Insert DB row
+                const [row] = await db.insert(messageAttachments).values(parsedRow).returning();
+                console.log("row", row)
+
+
+            }
+
+
+            const channel = supabase.channel(`${ownerId}-mailbox`);
+
+            channel.subscribe((status) => {
+                if (status !== "SUBSCRIBED") {
+                    return null;
+                }
+                channel.send({
+                    type: "broadcast",
+                    event: "shout",
+                    payload: { message },
+                });
+                return
+            });
+
 
 			// Optional: fetch the raw RFC822 now (you can move this to a worker if preferred)
 			// const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));

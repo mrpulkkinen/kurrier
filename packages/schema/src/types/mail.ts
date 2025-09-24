@@ -35,8 +35,16 @@ export const messageStatesList = [
 	"failed",
 ] as const;
 
+export const messagePriorityList = [
+    "low",
+    "medium",
+    "high",
+] as const;
+
 export const MessageStateEnum = z.enum(messageStatesList);
 export type MessageState = z.infer<typeof MessageStateEnum>;
+
+// export const MessagePriorityEnum = z.enum(messagePriorityList);
 
 export const MessageStateDisplay: Record<MessageState, string> = {
 	normal: "Normal",
@@ -67,3 +75,15 @@ export const SYSTEM_MAILBOXES: Array<{
 	{ kind: "archive", isDefault: false },
 	{ kind: "outbox", isDefault: false },
 ];
+
+export type EmailAddressJSON = {
+    address?: string | null;
+    name: string;
+    group?: EmailAddressJSON[];
+};
+
+export type AddressObjectJSON = {
+    value: EmailAddressJSON[];
+    html: string;
+    text: string;
+};

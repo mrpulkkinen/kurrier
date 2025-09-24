@@ -120,7 +120,7 @@ export default function MailList({
 
 	const startListener = async () => {
 		const supabase = createClient(publicConfig);
-		const myChannel = supabase.channel("test-channel");
+		const myChannel = supabase.channel(`${activeMailbox.ownerId}-mailbox`);
 		function messageReceived(payload: any) {
 			console.log(payload);
 			revalidateMailbox("/mail/QG3gxpcnPh/inbox");

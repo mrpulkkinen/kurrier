@@ -47,7 +47,7 @@ function MailListItem({
 						type="checkbox"
 						// checked={isSelected}
 						// onChange={() => toggleRow(m.id)}
-						aria-label={`Select conversation from ${message.fromEmail}`}
+						aria-label={`Select conversation from ${message?.from?.value[0]?.address}`}
 						className="h-4 w-4 rounded border-muted-foreground/40"
 					/>
 				</div>
@@ -69,12 +69,12 @@ function MailListItem({
 				{/* From */}
 				<div
 					className={[
-						"truncate pr-2",
+						"truncate pr-2 font-semibold",
 						// !m.seen ? "font-semibold text-foreground" : "text-foreground",
 					].join(" ")}
 					// onClick={() => onOpenMail?.(m.id)}
 				>
-					{message.fromEmail}
+					{message?.from?.value[0]?.name || ""}
 				</div>
 
 				{/* Subject + snippet + chips */}
@@ -90,7 +90,7 @@ function MailListItem({
 						{message.subject}
 					</span>
 					<span className="mx-1 text-muted-foreground">–</span>
-					{/*<span className="truncate text-muted-foreground">{m.snippet}</span>*/}
+					<span className="truncate text-muted-foreground">{message?.text?.slice(0, 100)}</span>
 
 					{/*              {m.labels?.length ? (*/}
 					{/*                  <span className="hidden gap-1 md:flex">*/}

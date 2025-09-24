@@ -76,15 +76,6 @@ importers:
         specifier: ^4.20.5
         version: 4.20.5
 
-  apps/nitro-app:
-    devDependencies:
-      h3:
-        specifier: ^1.15.4
-        version: 1.15.4
-      nitropack:
-        specifier: ^2.12.4
-        version: 2.12.6(drizzle-orm@0.44.5)
-
   apps/web:
     dependencies:
       '@js-temporal/polyfill':

@@ -11,7 +11,6 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { ActionIcon, Button, Popover } from "@mantine/core";
 
 export type TextEditorHandle = {
 	focus: (where?: "start" | "end") => void;
@@ -26,11 +25,11 @@ type TextEditorProps = {
 	message: MessageEntity;
 };
 
-import { Baseline } from "lucide-react";
 import { MessageEntity } from "@db";
 import { Temporal } from "@js-temporal/polyfill";
 import DOMPurify from "dompurify";
-import EmailViewer from "@/components/mailbox/default/email-viewer";
+import EditorHeader from "@/components/mailbox/default/editor/editor-header";
+import EditorFooter from "@/components/mailbox/default/editor/editor-footer";
 
 function formatWhen(d: Date) {
 	return Temporal.Instant.from(d.toISOString())
@@ -65,6 +64,7 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 	({ name, defaultValue = "", onChange, message }, ref) => {
 		const containerRef = useRef<HTMLDivElement>(null);
 		const [value, setValue] = useState(defaultValue);
+		const [textValue, setTextValue] = useState("");
 
 		const initialHtml = useMemo(
 			() => buildQuotedHtml(message, defaultValue),
@@ -79,11 +79,14 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 			// content: initialHtml,
 			// content: '<div class="text-3xl text-red-600">yay</div>',                        // set initial content
 			onUpdate: ({ editor }) => {
-				const html = editor.getText().trim().length
-					? editor.getHTML().trim()
-					: "";
-				setValue(html);
-				onChange?.(html);
+                setTextValue(editor.getText().trim())
+                setValue(editor.getHTML().trim())
+				// const html = editor.getText().trim().length
+				// 	? editor.getHTML().trim()
+				// 	: "";
+                // console.log("html", html)
+				// setValue(html);
+				// onChange?.(html);
 			},
 		});
 
@@ -102,60 +105,20 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 
 		return (
 			<div ref={containerRef} className="scroll-mt-[72px] mb-40">
-				<RichTextEditor editor={editor}>
-					<div className={"border-b"}>ajhsdk</div>
-
+				<RichTextEditor editor={editor} className={"!border !rounded-t-md !border-neutral-200"}>
+                    <EditorHeader />
 					<RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
-
-					<div className={"border-t items-center flex py-2"}>
-						<div className={"mx-2"}>
-							<Button size={"xs"} radius={"xl"}>
-								Send
-							</Button>
-						</div>
-
-						<Popover position="top-start" withArrow shadow="md">
-							<Popover.Target>
-								<ActionIcon variant={"transparent"}>
-									<Baseline />
-								</ActionIcon>
-							</Popover.Target>
-							<Popover.Dropdown className={"!p-0"}>
-								<RichTextEditor.Toolbar
-									sticky
-									stickyOffset={60}
-									className={"!border-0"}
-								>
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.Bold />
-										<RichTextEditor.Italic />
-										<RichTextEditor.Underline />
-										<RichTextEditor.Strikethrough />
-										<RichTextEditor.ClearFormatting />
-									</RichTextEditor.ControlsGroup>
-
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.BulletList />
-										<RichTextEditor.OrderedList />
-									</RichTextEditor.ControlsGroup>
-
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.Undo />
-										<RichTextEditor.Redo />
-									</RichTextEditor.ControlsGroup>
-								</RichTextEditor.Toolbar>
-							</Popover.Dropdown>
-						</Popover>
-					</div>
+                    <EditorFooter />
 				</RichTextEditor>
 
 				<span className="text-xs text-neutral-500">
 					Press Shift + Enter for a line break
 				</span>
 				{/* keep a hidden input if you need form submit compatibility */}
-				{name ? (
+				{name ? <>
 					<input type="hidden" name={name} value={value} readOnly />
-				) : null}
+					<input type="hidden" name={`text`} value={textValue} readOnly />
+                </> : null}
 			</div>
 		);
 	},

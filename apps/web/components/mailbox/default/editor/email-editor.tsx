@@ -1,15 +1,21 @@
 "use client";
 import React, {
-	useEffect,
-	useRef,
-	forwardRef,
-	useImperativeHandle,
+    useEffect,
+    useRef,
+    forwardRef,
+    useImperativeHandle, useActionState, useState,
 } from "react";
 import { MessageEntity } from "@db";
 import {
 	TextEditor,
 	TextEditorHandle,
 } from "@/components/mailbox/default/editor/rich-text-editor";
+import Form from "next/form";
+import {sendMail} from "@/lib/actions/mailbox";
+import type {FormState} from "@schema";
+import {DynamicContextProvider} from "@/hooks/use-dynamic-context";
+import {toast, Toaster} from "sonner";
+import {useAppearance} from "@/components/providers/appearance-provider";
 
 export type EmailEditorHandle = {
 	focus: () => void;
@@ -36,11 +42,37 @@ const EmailEditor = forwardRef<EmailEditorHandle, Props>(
 			if (el) onReady?.(el);
 		}, [onReady]);
 
-		return (
+        const [formState, formAction, isPending] = useActionState<
+            FormState,
+            FormData
+        >(sendMail, {});
+
+        useEffect(() => {
+            if (formState.error){
+                toast.error("Error", {
+                    description:
+                        formState.error,
+                });
+            } else if (formState.success){
+                toast.success("Success", {
+                    description: formState.success,
+                });
+            }
+        }, [formState])
+
+        const { mode } = useAppearance();
+		return <>
+            <Toaster theme={mode} expand={true} />
 			<div className="mt-4" tabIndex={-1}>
-				<TextEditor ref={textEditorRef} message={message} />
+                <DynamicContextProvider initialState={{isPending}}>
+                    <Form action={formAction}>
+                        <input type={"hidden"} name={"messageId"} value={message.id}/>
+                        <TextEditor name={"html"} ref={textEditorRef} message={message} />
+                    </Form>
+                </DynamicContextProvider>
+
 			</div>
-		);
+        </>
 	},
 );
 
