@@ -79,12 +79,12 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 			// content: initialHtml,
 			// content: '<div class="text-3xl text-red-600">yay</div>',                        // set initial content
 			onUpdate: ({ editor }) => {
-                setTextValue(editor.getText().trim())
-                setValue(editor.getHTML().trim())
+				setTextValue(editor.getText().trim());
+				setValue(editor.getHTML().trim());
 				// const html = editor.getText().trim().length
 				// 	? editor.getHTML().trim()
 				// 	: "";
-                // console.log("html", html)
+				// console.log("html", html)
 				// setValue(html);
 				// onChange?.(html);
 			},
@@ -105,20 +105,25 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 
 		return (
 			<div ref={containerRef} className="scroll-mt-[72px] mb-40">
-				<RichTextEditor editor={editor} className={"!border !rounded-t-md !border-neutral-200"}>
-                    <EditorHeader />
+				<RichTextEditor
+					editor={editor}
+					className={"!border !rounded-t-md !border-neutral-200"}
+				>
+					<EditorHeader />
 					<RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
-                    <EditorFooter />
+					<EditorFooter />
 				</RichTextEditor>
 
 				<span className="text-xs text-neutral-500">
 					Press Shift + Enter for a line break
 				</span>
 				{/* keep a hidden input if you need form submit compatibility */}
-				{name ? <>
-					<input type="hidden" name={name} value={value} readOnly />
-					<input type="hidden" name={`text`} value={textValue} readOnly />
-                </> : null}
+				{name ? (
+					<>
+						<input type="hidden" name={name} value={value} readOnly />
+						<input type="hidden" name={`text`} value={textValue} readOnly />
+					</>
+				) : null}
 			</div>
 		);
 	},

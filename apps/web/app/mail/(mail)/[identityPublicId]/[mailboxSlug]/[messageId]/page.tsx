@@ -5,8 +5,8 @@ import { messages } from "@db";
 import EmailViewer from "@/components/mailbox/default/email-viewer";
 import EmailRenderer from "@/components/mailbox/default/email-renderer";
 import { Avatar } from "@mantine/core";
-import {fetchMessageAttachments} from "@/lib/actions/mailbox";
-import {getPublicEnv} from "@schema";
+import { fetchMessageAttachments } from "@/lib/actions/mailbox";
+import { getPublicEnv } from "@schema";
 
 async function Page({
 	params,
@@ -19,19 +19,27 @@ async function Page({
 	const [message] = await rls((tx) => {
 		return tx.select().from(messages).where(eq(messages.id, messageId));
 	});
-    const publicConfig = getPublicEnv();
+	const publicConfig = getPublicEnv();
 
 	return (
 		<div className="flex flex-1 flex-col gap-4 p-4">
 			<div className={"flex gap-4"}>
 				<div className={"flex-shrink flex flex-col items-center pt-12"}>
 					<Avatar
-						name={message?.from?.value[0]?.name || message?.from?.value[0]?.address || ""}
+						name={
+							message?.from?.value[0]?.name ||
+							message?.from?.value[0]?.address ||
+							""
+						}
 						color="initials"
 					/>
 				</div>
 				<div className={"flex-grow flex flex-col gap-2"}>
-					<EmailRenderer message={message} attachments={attachments} publicConfig={publicConfig}>
+					<EmailRenderer
+						message={message}
+						attachments={attachments}
+						publicConfig={publicConfig}
+					>
 						<EmailViewer message={message} />
 					</EmailRenderer>
 				</div>

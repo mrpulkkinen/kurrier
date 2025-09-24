@@ -1,26 +1,28 @@
 import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    pgPolicy,
-    pgEnum,
-    uniqueIndex,
-    boolean,
-    jsonb,
-    integer,
-    index, pgSchema,
+	pgTable,
+	uuid,
+	text,
+	timestamp,
+	pgPolicy,
+	pgEnum,
+	uniqueIndex,
+	boolean,
+	jsonb,
+	integer,
+	index,
+	pgSchema,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
 import {
-    AddressObjectJSON,
-    identityStatusList,
-    identityTypesList,
-    mailboxKindsList, messagePriorityList,
-    messageStatesList,
-    providersList,
+	AddressObjectJSON,
+	identityStatusList,
+	identityTypesList,
+	mailboxKindsList,
+	messagePriorityList,
+	messageStatesList,
+	providersList,
 } from "@schema";
 import { DnsRecord } from "@providers";
 import { nanoid } from "nanoid";
@@ -31,7 +33,10 @@ export const IdentityKindEnum = pgEnum("identity_kind", identityTypesList);
 export const IdentityStatusEnum = pgEnum("identity_status", identityStatusList);
 export const MailboxKindEnum = pgEnum("mailbox_kind", mailboxKindsList);
 export const MessageStateEnum = pgEnum("message_state", messageStatesList);
-export const MessagePriorityEnum = pgEnum("message_priority", messagePriorityList);
+export const MessagePriorityEnum = pgEnum(
+	"message_priority",
+	messagePriorityList,
+);
 
 export const secretsMeta = pgTable(
 	"secrets_meta",
@@ -579,66 +584,69 @@ export const mailboxes = pgTable(
 	],
 ).enableRLS();
 
-
 export const messageAttachments = pgTable(
-    "message_attachments",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
+	"message_attachments",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
 
-        ownerId: uuid("owner_id")
-            .references(() => users.id)
-            .notNull()
-            .default(sql`auth.uid()`),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
 
-        messageId: uuid("message_id")
-            .references(() => messages.id, { onDelete: "cascade" })
-            .notNull(),
+		messageId: uuid("message_id")
+			.references(() => messages.id, { onDelete: "cascade" })
+			.notNull(),
 
-        // Storage location
-        bucketId: text("bucket_id").notNull().default("attachments"),
-        path: text("path").notNull(), // e.g. "private/<userId>/<messageId>/<uuid>.<ext>"
+		// Storage location
+		bucketId: text("bucket_id").notNull().default("attachments"),
+		path: text("path").notNull(), // e.g. "private/<userId>/<messageId>/<uuid>.<ext>"
 
-        // Metadata
-        filenameOriginal: text("filename_original"),
-        contentType: text("content_type"),
-        sizeBytes: integer("size_bytes"),
+		// Metadata
+		filenameOriginal: text("filename_original"),
+		contentType: text("content_type"),
+		sizeBytes: integer("size_bytes"),
 
-        // Inline/CID support
-        cid: text("cid"),
-        isInline: boolean("is_inline").notNull().default(false),
-        checksum: text("checksum"),
+		// Inline/CID support
+		cid: text("cid"),
+		isInline: boolean("is_inline").notNull().default(false),
+		checksum: text("checksum"),
 
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-    },
-    (t) => [
-        index("idx_msg_attachments_message").on(t.messageId),
-        uniqueIndex("uniq_bucket_path").on(t.bucketId, t.path),
-        index("idx_msg_attachments_cid").on(t.cid),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		index("idx_msg_attachments_message").on(t.messageId),
+		uniqueIndex("uniq_bucket_path").on(t.bucketId, t.path),
+		index("idx_msg_attachments_cid").on(t.cid),
 
-        // RLS: owner can CRUD their own attachments
-        pgPolicy("message_attachments_select_own", {
-            for: "select",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("message_attachments_insert_own", {
-            for: "insert",
-            to: authenticatedRole,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("message_attachments_update_own", {
-            for: "update",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("message_attachments_delete_own", {
-            for: "delete",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-    ],
+		// RLS: owner can CRUD their own attachments
+		pgPolicy("message_attachments_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("message_attachments_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("message_attachments_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("message_attachments_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
 ).enableRLS();
 
 export const messages = pgTable(
@@ -656,26 +664,22 @@ export const messages = pgTable(
 			.notNull()
 			.$defaultFn(() => nanoid(10)),
 
-        messageId: text("message_id").notNull(),
-        // messageId: text("message_id"),
-        inReplyTo: text("in_reply_to"),
-        references: text("references").array(),
-        threadId: uuid("thread_id")
-            .references(() => threads.id, { onDelete: "cascade" })
-            .notNull(),
-        replyTo: jsonb("reply_to")
-            .$type<Array<{ name?: string; email: string }>>()
-            .default(sql`'[]'::jsonb`),
-        deliveredTo: text("delivered_to"),
-        // priority: text("priority"),
-        priority: MessagePriorityEnum("priority").default(sql`null`),
-        html: text("html"),
+		messageId: text("message_id").notNull(),
+		// messageId: text("message_id"),
+		inReplyTo: text("in_reply_to"),
+		references: text("references").array(),
+		threadId: uuid("thread_id")
+			.references(() => threads.id, { onDelete: "cascade" })
+			.notNull(),
+		replyTo: jsonb("reply_to")
+			.$type<Array<{ name?: string; email: string }>>()
+			.default(sql`'[]'::jsonb`),
+		deliveredTo: text("delivered_to"),
+		// priority: text("priority"),
+		priority: MessagePriorityEnum("priority").default(sql`null`),
+		html: text("html"),
 
-
-
-
-
-        subject: text("subject"),
+		subject: text("subject"),
 		snippet: text("snippet"),
 		// fromName: text("from_name"),
 		// fromEmail: text("from_email"),
@@ -683,18 +687,17 @@ export const messages = pgTable(
 		text: text("text"),
 		textAsHtml: text("text_as_html"),
 
-
-        from:    jsonb("from").$type<AddressObjectJSON | null>().default(sql`null`),
-        to:      jsonb("to").$type<AddressObjectJSON | null>().default(sql`null`),
-        cc:      jsonb("cc").$type<AddressObjectJSON | null>().default(sql`null`),
-        bcc:     jsonb("bcc").$type<AddressObjectJSON | null>().default(sql`null`),
+		from: jsonb("from").$type<AddressObjectJSON | null>().default(sql`null`),
+		to: jsonb("to").$type<AddressObjectJSON | null>().default(sql`null`),
+		cc: jsonb("cc").$type<AddressObjectJSON | null>().default(sql`null`),
+		bcc: jsonb("bcc").$type<AddressObjectJSON | null>().default(sql`null`),
 
 		// to: jsonb("to")
 		// 	.$type<Array<{ name?: string; email: string }>>()
 		// 	.default(sql`'[]'::jsonb`),
-        // from: jsonb("from")
-        //     .$type<Array<{ name?: string; email: string }>>()
-        //     .default(sql`'[]'::jsonb`),
+		// from: jsonb("from")
+		//     .$type<Array<{ name?: string; email: string }>>()
+		//     .default(sql`'[]'::jsonb`),
 		// cc: jsonb("cc")
 		// 	.$type<Array<{ name?: string; email: string }>>()
 		// 	.default(sql`'[]'::jsonb`),
@@ -722,14 +725,13 @@ export const messages = pgTable(
 	},
 	(t) => [
 		uniqueIndex("uniq_message_public_id").on(t.publicId),
-        index("idx_messages_priority").on(t.priority),
+		index("idx_messages_priority").on(t.priority),
 
-        uniqueIndex("uniq_mailbox_message_id").on(t.mailboxId, t.messageId),
-        // index("idx_messages_thread_date").on(t.threadId, t.date),
-        index("idx_messages_in_reply_to").on(t.inReplyTo),
+		uniqueIndex("uniq_mailbox_message_id").on(t.mailboxId, t.messageId),
+		// index("idx_messages_thread_date").on(t.threadId, t.date),
+		index("idx_messages_in_reply_to").on(t.inReplyTo),
 
-
-        index("idx_messages_mailbox_date").on(t.mailboxId, t.date),
+		index("idx_messages_mailbox_date").on(t.mailboxId, t.date),
 		index("idx_messages_mailbox_seen_date").on(t.mailboxId, t.seen, t.date),
 
 		pgPolicy("messages_select_own", {
@@ -756,59 +758,66 @@ export const messages = pgTable(
 	],
 ).enableRLS();
 
-
 // threads.ts
 export const threads = pgTable(
-    "threads",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
+	"threads",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
 
-        ownerId: uuid("owner_id")
-            .references(() => users.id)
-            .notNull()
-            .default(sql`auth.uid()`),
+		ownerId: uuid("owner_id")
+			.references(() => users.id)
+			.notNull()
+			.default(sql`auth.uid()`),
 
-        mailboxId: uuid("mailbox_id")
-            .references(() => mailboxes.id, { onDelete: "cascade" })
-            .notNull(),
+		mailboxId: uuid("mailbox_id")
+			.references(() => mailboxes.id, { onDelete: "cascade" })
+			.notNull(),
 
-        lastMessageDate: timestamp("last_message_date", { withTimezone: true }), // nullable until first msg written
-        lastMessageId: uuid("last_message_id")
-            .references(() => messages.id, { onDelete: "set null" })
-            .default(null),
+		lastMessageDate: timestamp("last_message_date", { withTimezone: true }), // nullable until first msg written
+		lastMessageId: uuid("last_message_id")
+			.references(() => messages.id, { onDelete: "set null" })
+			.default(null),
 
-        // start at 0; bump in same tx when inserting first message
-        messageCount: integer("message_count").notNull().default(0),
+		// start at 0; bump in same tx when inserting first message
+		messageCount: integer("message_count").notNull().default(0),
 
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-    },
-    (t) => [
-        // sorting & pagination helper (DESC not expressible in Drizzle index; include id for tie-break)
-        index("idx_threads_mailbox_lastdate").on(t.mailboxId, t.lastMessageDate, t.id),
-        index("idx_threads_mailbox_updated").on(t.mailboxId, t.updatedAt),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [
+		// sorting & pagination helper (DESC not expressible in Drizzle index; include id for tie-break)
+		index("idx_threads_mailbox_lastdate").on(
+			t.mailboxId,
+			t.lastMessageDate,
+			t.id,
+		),
+		index("idx_threads_mailbox_updated").on(t.mailboxId, t.updatedAt),
 
-        // RLS
-        pgPolicy("threads_select_own", {
-            for: "select",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("threads_insert_own", {
-            for: "insert",
-            to: authenticatedRole,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("threads_update_own", {
-            for: "update",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-            withCheck: sql`${t.ownerId} = ${authUid}`,
-        }),
-        pgPolicy("threads_delete_own", {
-            for: "delete",
-            to: authenticatedRole,
-            using: sql`${t.ownerId} = ${authUid}`,
-        }),
-    ],
+		// RLS
+		pgPolicy("threads_select_own", {
+			for: "select",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("threads_insert_own", {
+			for: "insert",
+			to: authenticatedRole,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("threads_update_own", {
+			for: "update",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+			withCheck: sql`${t.ownerId} = ${authUid}`,
+		}),
+		pgPolicy("threads_delete_own", {
+			for: "delete",
+			to: authenticatedRole,
+			using: sql`${t.ownerId} = ${authUid}`,
+		}),
+	],
 ).enableRLS();

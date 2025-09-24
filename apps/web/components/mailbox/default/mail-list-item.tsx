@@ -90,7 +90,9 @@ function MailListItem({
 						{message.subject}
 					</span>
 					<span className="mx-1 text-muted-foreground">–</span>
-					<span className="truncate text-muted-foreground">{message?.text?.slice(0, 100)}</span>
+					<span className="truncate text-muted-foreground">
+						{message?.text?.slice(0, 100)}
+					</span>
 
 					{/*              {m.labels?.length ? (*/}
 					{/*                  <span className="hidden gap-1 md:flex">*/}
