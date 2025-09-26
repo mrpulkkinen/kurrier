@@ -483,9 +483,12 @@ export async function addNewEmailIdentity(
 		if (data.smtpAccountId) {
 			const identityData = IdentityInsertSchema.parse(data);
 			const [identity] = await rls((tx) =>
-				tx.insert(identities).values(identityData as IdentityCreate).returning(),
+				tx
+					.insert(identities)
+					.values(identityData as IdentityCreate)
+					.returning(),
 			);
-            await initializeMailboxes(identity);
+			await initializeMailboxes(identity);
 		} else {
 			data.domainIdentityId = data.domain;
 

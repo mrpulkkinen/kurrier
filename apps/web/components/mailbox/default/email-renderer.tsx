@@ -9,7 +9,7 @@ import { ActionIcon } from "@mantine/core";
 import { EmailEditorHandle } from "@/components/mailbox/default/editor/email-editor";
 import EditorAttachmentItem from "@/components/mailbox/default/editor/editor-attachment-item";
 import { PublicConfig } from "@schema";
-import {fromAddress, fromName} from "@/lib/utils";
+import { fromAddress, fromName } from "@/lib/utils";
 const EmailEditor = dynamic(
 	() => import("@/components/mailbox/default/editor/email-editor"),
 	{
@@ -117,7 +117,8 @@ function EmailRenderer({
 					<div>
 						<div className={"mt-4 flex gap-1 items-center"}>
 							<div className={"text-sm font-semibold capitalize"}>
-								{fromName(message) ?? slugify(String(fromAddress(message)), {separator: " "})}
+								{fromName(message) ??
+									slugify(String(fromAddress(message)), { separator: " " })}
 							</div>
 							<div
 								className={"text-xs"}
@@ -153,28 +154,30 @@ function EmailRenderer({
 
 			{children}
 
-            {attachments?.length > 0 && <div className={"border-t border-dotted"}>
-				<div className={"font-semibold my-4"}>
-					{attachments?.length} attachments
+			{attachments?.length > 0 && (
+				<div className={"border-t border-dotted"}>
+					<div className={"font-semibold my-4"}>
+						{attachments?.length} attachments
+					</div>
+					<div className={"flex flex-col"}>
+						{attachments?.map((attachment) => {
+							return (
+								<EditorAttachmentItem
+									key={attachment.id}
+									attachment={attachment}
+									publicConfig={publicConfig}
+								/>
+							);
+						})}
+					</div>
 				</div>
-				<div className={"flex flex-col"}>
-					{attachments?.map((attachment) => {
-						return (
-							<EditorAttachmentItem
-								key={attachment.id}
-								attachment={attachment}
-								publicConfig={publicConfig}
-							/>
-						);
-					})}
-				</div>
-			</div>}
+			)}
 
 			{showEditor && (
 				<div>
 					<EmailEditor
 						ref={editorRef}
-                        publicConfig={publicConfig}
+						publicConfig={publicConfig}
 						message={message}
 						onReady={(el) => {
 							scrollToEditor(el, { offsetTop: 72, extra: 240 }); // bump extra if you want more space

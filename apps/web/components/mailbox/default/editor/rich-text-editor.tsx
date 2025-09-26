@@ -64,7 +64,6 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 		const [value, setValue] = useState(defaultValue);
 		const [textValue, setTextValue] = useState("");
 
-
 		// const initialHtml = useMemo(
 		// 	() => buildQuotedHtml(message, defaultValue),
 		// 	[message, defaultValue],
@@ -109,7 +108,7 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 					className={"!border !rounded-t-md !border-neutral-200"}
 				>
 					<EditorHeader />
-                    <RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
+					<RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
 					<EditorFooter />
 				</RichTextEditor>
 

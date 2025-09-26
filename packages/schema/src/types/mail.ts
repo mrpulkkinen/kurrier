@@ -84,14 +84,13 @@ export type AddressObjectJSON = {
 	text: string;
 };
 
-
 export type ComposeMode = "reply" | "forward" | "new";
 
 export type MailComposeInput = {
-    messageId: string;          // original message (for reply/forward)
-    to: string[];               // ALWAYS an array internally
-    subject?: string;
-    text?: string;
-    html?: string;
-    mode: ComposeMode;
+	messageId: string; // original message (for reply/forward)
+	to: string[]; // ALWAYS an array internally
+	subject?: string;
+	text?: string;
+	html?: string;
+	mode: ComposeMode;
 };

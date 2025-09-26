@@ -182,15 +182,14 @@ export default defineEventHandler(async (event) => {
 				new GetObjectCommand({ Bucket: bucket, Key: key }),
 			);
 			const rawEmail = (await getObj?.Body?.transformToString("utf-8")) || "";
-            const encoder = new TextEncoder();
-            const emailBuffer = encoder.encode(rawEmail);
+			const encoder = new TextEncoder();
+			const emailBuffer = encoder.encode(rawEmail);
 
-            await supabase
-                .storage
-                .from('attachments')
-                .upload(`eml/${ownerId}/${emlId}`, emailBuffer, {
-                    contentType: "message/rfc822"
-                })
+			await supabase.storage
+				.from("attachments")
+				.upload(`eml/${ownerId}/${emlId}`, emailBuffer, {
+					contentType: "message/rfc822",
+				});
 
 			const parsed = await simpleParser(rawEmail);
 			const headers = parsed.headers as Map<string, any>;
@@ -337,7 +336,7 @@ export default defineEventHandler(async (event) => {
 
 			const channel = await supabase.channel(`${ownerId}-mailbox`);
 
-            channel.subscribe((status) => {
+			channel.subscribe((status) => {
 				if (status !== "SUBSCRIBED") {
 					return null;
 				}
@@ -346,10 +345,9 @@ export default defineEventHandler(async (event) => {
 					event: "mail-received",
 					payload: { reload: true },
 				});
-                channel.unsubscribe()
+				channel.unsubscribe();
 				return;
 			});
-
 
 			// Optional: fetch the raw RFC822 now (you can move this to a worker if preferred)
 			// const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));

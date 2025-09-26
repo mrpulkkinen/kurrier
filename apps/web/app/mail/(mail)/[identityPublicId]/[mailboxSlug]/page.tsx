@@ -3,7 +3,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import MailboxSearch from "@/components/mailbox/default/mailbox-search";
 import MailList from "@/components/mailbox/default/mail-list";
-import {fetchMailbox, fetchMailboxMessages, fetchMailboxThreads} from "@/lib/actions/mailbox";
+import {
+	fetchMailbox,
+	fetchMailboxMessages,
+	fetchMailboxThreads,
+} from "@/lib/actions/mailbox";
 import { getPublicEnv } from "@schema";
 import ThreadList from "@/components/mailbox/default/thread-list";
 
@@ -17,7 +21,6 @@ async function Page({
 	const { threads } = await fetchMailboxThreads(activeMailbox.id);
 	const publicConfig = getPublicEnv();
 
-
 	return (
 		<>
 			<div className="flex flex-1 flex-col gap-4 p-4">
@@ -27,12 +30,12 @@ async function Page({
 				{/*	activeMailbox={activeMailbox}*/}
 				{/*	identityPublicId={identityPublicId}*/}
 				{/*/>*/}
-                <ThreadList
-                    threads={threads}
-                    publicConfig={publicConfig}
-                    activeMailbox={activeMailbox}
-                    identityPublicId={identityPublicId}
-                />
+				<ThreadList
+					threads={threads}
+					publicConfig={publicConfig}
+					activeMailbox={activeMailbox}
+					identityPublicId={identityPublicId}
+				/>
 
 				{/*{Array.from({ length: 24 }).map((_, index) => (*/}
 				{/*	<div*/}

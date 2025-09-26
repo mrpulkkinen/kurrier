@@ -8,16 +8,19 @@ import {
 	Text,
 } from "@mantine/core";
 import { Forward, Reply } from "lucide-react";
-import {useDynamicContext} from "@/hooks/use-dynamic-context";
-import {MessageEntity} from "@db";
-import {fromAddress} from "@/lib/utils";
+import { useDynamicContext } from "@/hooks/use-dynamic-context";
+import { MessageEntity } from "@db";
+import { fromAddress } from "@/lib/utils";
 
 function EditorHeader() {
 	const [mode, setMode] = useState<"reply" | "forward">("reply");
 	const [ccActive, setCcActive] = useState(false);
 	const [bccActive, setBccActive] = useState(false);
 
-    const {state} = useDynamicContext<{isPending: boolean, message: MessageEntity}>()
+	const { state } = useDynamicContext<{
+		isPending: boolean;
+		message: MessageEntity;
+	}>();
 
 	const options = useMemo(
 		() => [
@@ -27,9 +30,9 @@ function EditorHeader() {
 		[],
 	);
 
-    const toEmail = useMemo(() => {
-        return fromAddress(state.message) || "";
-    }, [state.message])
+	const toEmail = useMemo(() => {
+		return fromAddress(state.message) || "";
+	}, [state.message]);
 
 	const renderOption: SelectProps["renderOption"] = ({ option }) => {
 		const ItemIcon =
@@ -72,7 +75,12 @@ function EditorHeader() {
 					<div className="flex gap- items-stretch flex-col justify-start">
 						<div className="flex items-center gap-2">
 							<span className="text-sm text-muted-foreground">To</span>
-							<TagsInput defaultValue={[toEmail]} name={"to"} size="sm" variant="unstyled" />
+							<TagsInput
+								defaultValue={[toEmail]}
+								name={"to"}
+								size="sm"
+								variant="unstyled"
+							/>
 						</div>
 
 						{ccActive && (

@@ -229,152 +229,134 @@
 //     });
 // });
 
+import { defineNitroPlugin } from "nitropack/runtime";
+import { ImapFlow } from "imapflow";
+import { createClient } from "@supabase/supabase-js";
+import { getPublicEnv, getServerEnv } from "@schema";
+import {
+	db,
+	decryptAdminSecrets,
+	identities,
+	mailboxes,
+	smtpAccountSecrets,
+} from "@db";
+import { eq } from "drizzle-orm";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import {defineNitroPlugin} from "nitropack/runtime";
-import {ImapFlow} from "imapflow";
-import {createClient} from "@supabase/supabase-js";
-import {getPublicEnv, getServerEnv} from "@schema";
-import {db, decryptAdminSecrets, identities, mailboxes, smtpAccountSecrets} from "@db";
-import {eq} from "drizzle-orm";
-
-const publicConfig = getPublicEnv()
-const serverConfig = getServerEnv()
-const supabase = createClient(publicConfig.SUPABASE_DOMAIN, serverConfig.SUPABASE_SERVICE_ROLE_KEY,)
-
-
+const publicConfig = getPublicEnv();
+const serverConfig = getServerEnv();
+const supabase = createClient(
+	publicConfig.SUPABASE_DOMAIN,
+	serverConfig.SUPABASE_SERVICE_ROLE_KEY,
+);
 
 export default defineNitroPlugin(async (nitroApp) => {
-    console.log("************************************************************")
-    console.log("************************************************************")
-    console.log("************************************************************")
-    console.log("************************************************************")
-    const imapInstances = new Map<string, ImapFlow>();
-    const backfillChannel = supabase.channel(`smtp-worker`);
-    backfillChannel
-        .on(
-            "broadcast",
-            { event: "backfill" },
-            async ({payload}) => {
-                console.log("Backfill event received!", payload)
-                const client = await initBackfillClient(payload.identityId)
-                console.log("client", client)
-                if (client?.authenticated && client?.usable) {
-                    await startBackfill(client, payload.identityId)
-                }
+	console.log("************************************************************");
+	console.log("************************************************************");
+	console.log("************************************************************");
+	console.log("************************************************************");
+	const imapInstances = new Map<string, ImapFlow>();
+	const backfillChannel = supabase.channel(`smtp-worker`);
+	backfillChannel
+		.on("broadcast", { event: "backfill" }, async ({ payload }) => {
+			console.log("Backfill event received!", payload);
+			const client = await initBackfillClient(payload.identityId);
+			console.log("client", client);
+			if (client?.authenticated && client?.usable) {
+				await startBackfill(client, payload.identityId);
+			}
+		})
+		.on("broadcast", { event: "delta" }, async ({ payload }) => {
+			console.log("Delta update event received!", payload);
+			const client = await initBackfillClient(payload.identityId);
+			console.log("client", client);
+			if (client?.authenticated && client?.usable) {
+				// await startBackfill(client, payload.identityId)
+			}
+		})
+		.subscribe();
 
-            },
-        )
-        .on(
-            "broadcast",
-            { event: "delta" },
-            async ({payload}) => {
-                console.log("Delta update event received!", payload)
-                const client = await initBackfillClient(payload.identityId)
-                console.log("client", client)
-                if (client?.authenticated && client?.usable) {
-                    // await startBackfill(client, payload.identityId)
-                }
+	const startBackfill = async (client: ImapFlow, identityId: string) => {
+		const capabilities = client.capabilities;
+		if (capabilities.get("CONDSTORE") && capabilities.get("QRESYNC")) {
+			const localMailboxes = await db
+				.select()
+				.from(mailboxes)
+				.where(eq(mailboxes.identityId, identityId));
+			console.log("localMailboxes", localMailboxes);
 
-            },
-        )
-        .subscribe();
+			for await (const mailbox of await client.list()) {
+				console.log("mailbox", mailbox);
+			}
+		}
+	};
 
+	const initBackfillClient = async (identityId: string) => {
+		console.log("Backfill called for identityId:", identityId);
+		if (
+			imapInstances.has(identityId) &&
+			imapInstances.get(identityId)?.authenticated &&
+			imapInstances.get(identityId)?.usable
+		) {
+			console.log("IMAP instance already exists for identityId:", identityId);
+			const client = imapInstances.get(identityId);
+			return client;
+		} else {
+			const [identity] = await db
+				.select()
+				.from(identities)
+				.where(eq(identities.id, identityId));
+			console.log("identity", identity);
+			const [secrets] = await decryptAdminSecrets({
+				linkTable: smtpAccountSecrets,
+				foreignCol: smtpAccountSecrets.accountId,
+				secretIdCol: smtpAccountSecrets.secretId,
+				ownerId: identity.ownerId,
+				parentId: String(identity.smtpAccountId),
+			});
+			console.log("secrets", secrets);
+			const credentials = secrets?.vault?.decrypted_secret
+				? JSON.parse(secrets.vault.decrypted_secret)
+				: {};
+			console.log("credentials", credentials);
+			const client = new ImapFlow({
+				host: credentials.IMAP_HOST,
+				port: credentials.IMAP_PORT,
+				secure:
+					credentials.IMAP_SECURE === "true" ||
+					credentials.IMAP_SECURE === true,
+				auth: {
+					user: credentials.IMAP_USERNAME,
+					pass: credentials.IMAP_PASSWORD,
+				},
+			});
+			await client.connect();
+			imapInstances.set(identity.id, client);
+			return client;
+		}
+	};
 
-    const startBackfill = async (client: ImapFlow, identityId: string) => {
-        const capabilities = client.capabilities;
-        if (capabilities.get("CONDSTORE") && capabilities.get("QRESYNC")) {
-
-            const localMailboxes = await db.select().from(mailboxes).where(eq(mailboxes.identityId, identityId))
-            console.log("localMailboxes", localMailboxes)
-
-            for await (const mailbox of await client.list()) {
-                console.log("mailbox", mailbox)
-            }
-
-        }
-    };
-
-
-
-
-    const initBackfillClient = async (identityId: string) => {
-        console.log("Backfill called for identityId:", identityId)
-        if (imapInstances.has(identityId) && imapInstances.get(identityId)?.authenticated && imapInstances.get(identityId)?.usable) {
-            console.log("IMAP instance already exists for identityId:", identityId)
-            const client = imapInstances.get(identityId);
-            return client
-        } else {
-            const [identity] = await db.select().from(identities).where(eq(
-                identities.id, identityId
-            ))
-            console.log("identity", identity)
-            const [secrets] = await decryptAdminSecrets({
-                linkTable: smtpAccountSecrets,
-                foreignCol: smtpAccountSecrets.accountId,
-                secretIdCol: smtpAccountSecrets.secretId,
-                ownerId: identity.ownerId,
-                parentId: String(identity.smtpAccountId),
-            });
-            console.log("secrets", secrets)
-            const credentials = secrets?.vault?.decrypted_secret
-                ? JSON.parse(secrets.vault.decrypted_secret)
-                : {}
-            console.log("credentials", credentials)
-            const client = new ImapFlow({
-                host: credentials.IMAP_HOST,
-                port: credentials.IMAP_PORT,
-                secure: credentials.IMAP_SECURE === 'true' || credentials.IMAP_SECURE === true,
-                auth: {
-                    user: credentials.IMAP_USERNAME,
-                    pass: credentials.IMAP_PASSWORD
-                }
-            });
-            await client.connect()
-            imapInstances.set(identity.id, client)
-            return client
-        }
-    };
-
-
-
-
-
-
-    nitroApp.hooks.hookOnce("close", async () => {
-        // Will run when nitro is closed
-        console.log("Closing nitro server...")
-        try {
-            // await client.logout();
-            for (const [identityId, client] of imapInstances) {
-                try {
-                    await client.logout();
-                    console.log(`Logged out from IMAP server for identityId: ${identityId}`);
-                } catch (err) {
-                    console.error(`Failed to logout cleanly for identityId: ${identityId}`, err);
-                }
-            }
-            console.log("Logged out from IMAP server" );
-        } catch (err) {
-            console.error("Failed to logout cleanly", err);
-        }
-        console.log("Task is done!");
-    });
-
-
-})
+	nitroApp.hooks.hookOnce("close", async () => {
+		// Will run when nitro is closed
+		console.log("Closing nitro server...");
+		try {
+			// await client.logout();
+			for (const [identityId, client] of imapInstances) {
+				try {
+					await client.logout();
+					console.log(
+						`Logged out from IMAP server for identityId: ${identityId}`,
+					);
+				} catch (err) {
+					console.error(
+						`Failed to logout cleanly for identityId: ${identityId}`,
+						err,
+					);
+				}
+			}
+			console.log("Logged out from IMAP server");
+		} catch (err) {
+			console.error("Failed to logout cleanly", err);
+		}
+		console.log("Task is done!");
+	});
+});

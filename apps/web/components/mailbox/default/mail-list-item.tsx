@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { MailboxEntity, MessageEntity } from "@db";
 import { useRouter } from "next/navigation";
-import {fromAddress, fromName} from "@/lib/utils";
+import { fromAddress, fromName } from "@/lib/utils";
 
 function MailListItem({
 	message,
@@ -75,7 +75,7 @@ function MailListItem({
 					].join(" ")}
 					// onClick={() => onOpenMail?.(m.id)}
 				>
-                    {fromName(message)}
+					{fromName(message)}
 				</div>
 
 				{/* Subject + snippet + chips */}
