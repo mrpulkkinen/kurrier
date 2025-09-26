@@ -1,10 +1,10 @@
-// dynamic-context.tsx  (you can keep it where it is)
 "use client";
 import React, {
 	createContext,
 	useContext,
 	useMemo,
 	useState,
+	useEffect,
 	type ReactNode,
 } from "react";
 
@@ -26,17 +26,25 @@ export function DynamicContextProvider<T extends Dict>({
 	initialState: T;
 }) {
 	const [state, setState] = useState<T>(initialState);
+
+	// Sync if initialState changes (e.g. on route changes / SSR).
+	useEffect(() => {
+		setState((prev) => (prev === initialState ? prev : initialState));
+	}, [initialState]);
+
 	const value = useMemo(() => ({ state, setState }), [state]);
+
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 /** Generic hook – ask for T where you consume it */
 export function useDynamicContext<T extends Dict>(): DynamicContextType<T> {
 	const ctx = useContext(Ctx);
-	if (!ctx)
+	if (!ctx) {
 		throw new Error(
 			"useDynamicContext must be used within a DynamicContextProvider",
 		);
+	}
 	return ctx as DynamicContextType<T>;
 }
 

@@ -11,7 +11,6 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { ActionIcon, Button, Popover } from "@mantine/core";
 
 export type TextEditorHandle = {
 	focus: (where?: "start" | "end") => void;
@@ -23,14 +22,11 @@ type TextEditorProps = {
 	name?: string;
 	defaultValue?: string;
 	onChange?: (html: string) => void;
-	message: MessageEntity;
 };
 
-import { Baseline } from "lucide-react";
-import { MessageEntity } from "@db";
 import { Temporal } from "@js-temporal/polyfill";
-import DOMPurify from "dompurify";
-import EmailViewer from "@/components/mailbox/default/email-viewer";
+import EditorHeader from "@/components/mailbox/default/editor/editor-header";
+import EditorFooter from "@/components/mailbox/default/editor/editor-footer";
 
 function formatWhen(d: Date) {
 	return Temporal.Instant.from(d.toISOString())
@@ -45,31 +41,33 @@ function formatWhen(d: Date) {
 		});
 }
 
-function buildQuotedHtml(msg: MessageEntity, extraTopHtml = "") {
-	const from = msg.fromName || msg.fromEmail || "Unknown sender";
-	const when = msg.date ? formatWhen(new Date(msg.date)) : "";
-	// const raw = msg.html || msg.textAsHtml || (msg.text ? `<pre>${msg.text}</pre>` : "");
-	// const raw = msg.html
-	// const raw = msg.textAsHtml
-	const raw = "";
-	const safeBody = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
-
-	return `
-${extraTopHtml || "<p><br></p>"}
-<p class="reply-preamble">On ${when}, ${from} wrote:</p>
-<blockquote class="quoted-email">${safeBody}</blockquote>
-`;
-}
+// function buildQuotedHtml(msg: MessageEntity, extraTopHtml = "") {
+// 	const from = msg?.from?.value[0]?.name ||
+//         msg?.from?.value[0]?.address || "Unknown sender";
+// 	const when = msg.date ? formatWhen(new Date(msg.date)) : "";
+// 	// const raw = msg.html || msg.textAsHtml || (msg.text ? `<pre>${msg.text}</pre>` : "");
+// 	// const raw = msg.html
+// 	// const raw = msg.textAsHtml
+// 	const raw = "";
+// 	const safeBody = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+//
+// 	return `
+// ${extraTopHtml || "<p><br></p>"}
+// <p class="reply-preamble">On ${when}, ${from} wrote:</p>
+// <blockquote class="quoted-email">${safeBody}</blockquote>
+// `;
+// }
 
 export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
-	({ name, defaultValue = "", onChange, message }, ref) => {
+	({ name, defaultValue = "", onChange }, ref) => {
 		const containerRef = useRef<HTMLDivElement>(null);
 		const [value, setValue] = useState(defaultValue);
+		const [textValue, setTextValue] = useState("");
 
-		const initialHtml = useMemo(
-			() => buildQuotedHtml(message, defaultValue),
-			[message, defaultValue],
-		);
+		// const initialHtml = useMemo(
+		// 	() => buildQuotedHtml(message, defaultValue),
+		// 	[message, defaultValue],
+		// );
 
 		const editor = useEditor({
 			immediatelyRender: false,
@@ -79,11 +77,14 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 			// content: initialHtml,
 			// content: '<div class="text-3xl text-red-600">yay</div>',                        // set initial content
 			onUpdate: ({ editor }) => {
-				const html = editor.getText().trim().length
-					? editor.getHTML().trim()
-					: "";
-				setValue(html);
-				onChange?.(html);
+				setTextValue(editor.getText().trim());
+				setValue(editor.getHTML().trim());
+				// const html = editor.getText().trim().length
+				// 	? editor.getHTML().trim()
+				// 	: "";
+				// console.log("html", html)
+				// setValue(html);
+				// onChange?.(html);
 			},
 		});
 
@@ -102,51 +103,13 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 
 		return (
 			<div ref={containerRef} className="scroll-mt-[72px] mb-40">
-				<RichTextEditor editor={editor}>
-					<div className={"border-b"}>ajhsdk</div>
-
+				<RichTextEditor
+					editor={editor}
+					className={"!border !rounded-t-md !border-neutral-200"}
+				>
+					<EditorHeader />
 					<RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
-
-					<div className={"border-t items-center flex py-2"}>
-						<div className={"mx-2"}>
-							<Button size={"xs"} radius={"xl"}>
-								Send
-							</Button>
-						</div>
-
-						<Popover position="top-start" withArrow shadow="md">
-							<Popover.Target>
-								<ActionIcon variant={"transparent"}>
-									<Baseline />
-								</ActionIcon>
-							</Popover.Target>
-							<Popover.Dropdown className={"!p-0"}>
-								<RichTextEditor.Toolbar
-									sticky
-									stickyOffset={60}
-									className={"!border-0"}
-								>
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.Bold />
-										<RichTextEditor.Italic />
-										<RichTextEditor.Underline />
-										<RichTextEditor.Strikethrough />
-										<RichTextEditor.ClearFormatting />
-									</RichTextEditor.ControlsGroup>
-
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.BulletList />
-										<RichTextEditor.OrderedList />
-									</RichTextEditor.ControlsGroup>
-
-									<RichTextEditor.ControlsGroup>
-										<RichTextEditor.Undo />
-										<RichTextEditor.Redo />
-									</RichTextEditor.ControlsGroup>
-								</RichTextEditor.Toolbar>
-							</Popover.Dropdown>
-						</Popover>
-					</div>
+					<EditorFooter />
 				</RichTextEditor>
 
 				<span className="text-xs text-neutral-500">
@@ -154,7 +117,10 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 				</span>
 				{/* keep a hidden input if you need form submit compatibility */}
 				{name ? (
-					<input type="hidden" name={name} value={value} readOnly />
+					<>
+						<input type="hidden" name={name} value={value} readOnly />
+						<input type="hidden" name={`text`} value={textValue} readOnly />
+					</>
 				) : null}
 			</div>
 		);

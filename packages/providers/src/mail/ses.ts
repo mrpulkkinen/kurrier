@@ -51,6 +51,7 @@ import {
 	GetEmailIdentityCommand,
 	DeleteEmailIdentityCommand,
 	PutEmailIdentityMailFromAttributesCommand,
+	SendEmailCommand as SendEmailCommandV2,
 	// DeleteEmailIdentityCommand,
 } from "@aws-sdk/client-sesv2";
 import slugify from "@sindresorhus/slugify";
@@ -64,6 +65,16 @@ type BootResult = {
 	topicExists: boolean;
 	ruleCreated: boolean;
 };
+
+type MailAttachmentInput = {
+	name: string; // file name to show in the client
+	content: Blob; // the Blob you downloaded from storage
+	contentType?: string; // optional override
+	inline?: boolean; // if you want cid/inline later
+	contentId?: string; // if inline
+};
+
+import type { Attachment as SesV2Attachment } from "@aws-sdk/client-sesv2";
 
 export class SesMailer implements Mailer {
 	private client: SESClient;
@@ -129,6 +140,56 @@ export class SesMailer implements Mailer {
 			defaultRuleName: `${base}-inbound-default`,
 			s3NotifId: `${base}-s3-objectcreated-inbound`,
 		};
+	}
+
+	private buildSesHeaders(inReplyTo?: string, references?: string[]) {
+		const MAX_REF_VALUE_LEN = 850; // SES limit is 870, keep headroom
+
+		const normalize = (id?: string) => {
+			if (!id) return "";
+			const s = String(id).trim();
+			if (!s) return "";
+			return s.startsWith("<") && s.endsWith(">")
+				? s
+				: s.startsWith("<")
+					? s + ">"
+					: `<${s}>`;
+		};
+
+		const headers: { Name: string; Value: string }[] = [];
+
+		if (inReplyTo) {
+			const val = normalize(inReplyTo);
+			if (val) headers.push({ Name: "In-Reply-To", Value: val });
+		}
+
+		if (references && references.length > 0) {
+			const seen = new Set<string>();
+			const normalized: string[] = [];
+			for (const r of references) {
+				const id = normalize(r);
+				if (id && !seen.has(id)) {
+					seen.add(id);
+					normalized.push(id);
+				}
+			}
+
+			// Add from newest back until we hit budget
+			const out: string[] = [];
+			let total = 0;
+			for (let i = normalized.length - 1; i >= 0; i--) {
+				const id = normalized[i];
+				const extra = (out.length ? 1 : 0) + id.length;
+				if (total + extra > MAX_REF_VALUE_LEN) break;
+				out.push(id);
+				total += extra;
+			}
+			if (out.length) {
+				headers.push({ Name: "References", Value: out.reverse().join(" ") });
+			}
+		}
+
+		return headers;
 	}
 
 	private async ensureRuleSet(
@@ -793,6 +854,126 @@ export class SesMailer implements Mailer {
 		} catch (err) {
 			console.error("SES sendTestEmail error:", err);
 			return false;
+		}
+	}
+
+	async sendEmail(
+		to: string[],
+		opts: {
+			subject: string;
+			text: string;
+			html: string;
+			from: string;
+			inReplyTo: string;
+			references: string[];
+			attachments?: { name: string; content: Blob; contentType: string }[];
+		},
+	): Promise<{ success: boolean; MessageId?: string }> {
+		// const subject = opts?.subject ?? "Test email";
+		// const body =
+		//     opts?.body ??
+		//     "This is a test email from your configured SES account. Whats up";
+
+		// Must be a verified email or an address at a verified domain in this SES account/region
+		// const from = (this.cfg as SesConfig).mailFrom ?? to;
+		// const from = "no-reply@kurrier.org";
+
+		// const base64Attachments = await Promise.all(
+		//     opts.attachments.map(async (att) => {
+		//         const arrayBuffer = await att.content.arrayBuffer();
+		//         const base64 = Buffer.from(new Uint8Array(arrayBuffer)).toString("base64")
+		//         return {
+		//             FileName: att.name,
+		//             // RawContent: new Uint8Array(arrayBuffer),   // ✅ correct type
+		//             RawContent: base64,   // ✅ correct type
+		//             ContentType: att.contentType || "application/octet-stream",
+		//             ContentDisposition: "ATTACHMENT",
+		//         };
+		//     })
+		// )
+
+		// const base64Attachments = await Promise.all(
+		//     (opts.attachments ?? []).map(async (att) => {
+		//         const ab = await att.content.arrayBuffer();
+		//         const bytes = new Uint8Array(ab);
+		//
+		//         return {
+		//             FileName: att.name,                                  // not FileName
+		//             RawContent: bytes,                                  // not RawContent, not base64 string
+		//             // ContentType: att.contentType || att.content.type || "application/octet-stream",
+		//             // ContentDisposition: "ATTACHMENT",
+		//         } as const;
+		//     })
+		// );
+
+		async function toSesV2Attachments(
+			inputs: MailAttachmentInput[],
+		): Promise<SesV2Attachment[]> {
+			return Promise.all(
+				inputs.map(async (att) => {
+					const ab = await att.content.arrayBuffer();
+					const bytes = new Uint8Array(ab);
+
+					const out: SesV2Attachment = {
+						FileName: att.name,
+						RawContent: bytes, // <-- Uint8Array (do NOT base64 yourself)
+						ContentType:
+							att.contentType || att.content.type || "application/octet-stream",
+						ContentTransferEncoding: "BASE64",
+						// ContentDisposition: att.inline ? "INLINE" : "ATTACHMENT",
+						// ...(att.contentId ? { ContentId: att.contentId } : {}),
+					};
+					return out;
+				}),
+			);
+		}
+
+		const base64Attachments = await toSesV2Attachments(opts.attachments ?? []);
+
+		try {
+			const { MessageId } = await this.v2.send(
+				new SendEmailCommandV2({
+					FromEmailAddress: opts.from,
+					Destination: { ToAddresses: to },
+					// Source: opts.from,
+					Content: {
+						Simple: {
+							Subject: { Data: opts.subject, Charset: "UTF-8" },
+							Body: {
+								Text: { Data: opts.text, Charset: "UTF-8" },
+								Html: { Data: opts.html, Charset: "UTF-8" }, // optional
+							},
+							...(opts.attachments && opts.attachments.length > 0
+								? {
+										Attachments: base64Attachments,
+									}
+								: {}),
+							Headers: this.buildSesHeaders(opts.inReplyTo, opts.references),
+						},
+					},
+				}),
+			);
+
+			// await this.client.send(
+			//     new SendEmailCommandV2({
+			//         Source: opts.from,
+			//         Destination: { ToAddresses: to },
+			//         Message: {
+			//             Subject: { Data: opts.subject, Charset: "UTF-8" },
+			//             Body: {
+			//                 Text: { Data: opts.text, Charset: "UTF-8" },
+			//                 Html: { Data: opts.html, Charset: "UTF-8" }, // optional
+			//             },
+			//         },
+			//     }),
+			// );
+			return {
+				MessageId: `<${MessageId}@${this.cfg.region}.amazonses.com>`,
+				success: true,
+			};
+		} catch (err) {
+			console.error("SES sendTestEmail error:", err);
+			return { success: false };
 		}
 	}
 

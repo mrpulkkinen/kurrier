@@ -4,7 +4,6 @@ import { fetchMailbox } from "@/lib/actions/mailbox";
 
 export default async function DashboardLayout({
 	children,
-	breadcrumb,
 	params,
 }: {
 	children: React.ReactNode;

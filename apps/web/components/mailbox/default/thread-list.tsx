@@ -11,13 +11,17 @@ import {
 	MailOpen,
 	Mail,
 } from "lucide-react";
-import { MailboxEntity, MessageEntity } from "@db";
+import { MailboxEntity, MessageEntity, ThreadEntity } from "@db";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PublicConfig } from "@schema";
-import { revalidateMailbox } from "@/lib/actions/mailbox";
+import {
+	FetchMailboxThreadsResult,
+	revalidateMailbox,
+} from "@/lib/actions/mailbox";
 import MailListItem from "@/components/mailbox/default/mail-list-item";
 import MailListHeader from "@/components/mailbox/default/mail-list-header";
+import ThreadListItem from "@/components/mailbox/default/thread-list-item";
 
 type MailItem = {
 	id: string;
@@ -82,16 +86,16 @@ const MOCK_MAILS: MailItem[] = [
 type MailListProps = {
 	items?: MailItem[];
 	onOpenMail?: (id: string) => void;
-	messages: MessageEntity[];
+	threads: FetchMailboxThreadsResult["threads"];
 	publicConfig: PublicConfig;
 	activeMailbox: MailboxEntity;
 	identityPublicId: string;
 };
 
-export default function MailList({
+export default function ThreadList({
 	items = MOCK_MAILS,
 	onOpenMail,
-	messages,
+	threads,
 	publicConfig,
 	activeMailbox,
 	identityPublicId,
@@ -120,18 +124,33 @@ export default function MailList({
 
 	const startListener = async () => {
 		const supabase = createClient(publicConfig);
+
 		const myChannel = supabase.channel(`${activeMailbox.ownerId}-mailbox`);
 		function messageReceived(payload: any) {
-			console.log(payload);
-			revalidateMailbox("/mail/QG3gxpcnPh/inbox");
+			console.log("Message received!", payload);
+			revalidateMailbox("/mail");
 		}
 		myChannel
-			.on(
-				"broadcast",
-				{ event: "shout" }, // Listen for "shout". Can be "*" to listen to all events
-				(payload) => messageReceived(payload),
+			.on("broadcast", { event: "mail-received" }, (payload) =>
+				messageReceived(payload),
 			)
 			.subscribe();
+
+		console.log("Listening to mailbox changes on channel:");
+		const testChannel = supabase.channel(`smtp-worker`);
+		testChannel.subscribe((status) => {
+			if (status !== "SUBSCRIBED") {
+				return null;
+			}
+			testChannel.send({
+				type: "broadcast",
+				event: "backfill",
+				payload: { identityId: "956279b4-23e0-41ee-977c-ca82223c5cbd" },
+			});
+			testChannel.unsubscribe();
+
+			return;
+		});
 	};
 
 	useEffect(() => {
@@ -142,7 +161,7 @@ export default function MailList({
 
 	return (
 		<>
-			{messages.length === 0 ? (
+			{threads.length === 0 ? (
 				<div className="p-4 text-center text-base text-muted-foreground">
 					No messages in{" "}
 					<span className={"lowercase"}>{activeMailbox.name}</span>
@@ -152,13 +171,19 @@ export default function MailList({
 					<MailListHeader />
 
 					<ul role="list" className="divide-y">
-						{messages.map((message) => (
-							<MailListItem
-								key={message.id}
-								message={message}
+						{threads.map((threadItem) => (
+							<ThreadListItem
+								key={threadItem.thread.id}
+								threadItem={threadItem}
 								activeMailbox={activeMailbox}
 								identityPublicId={identityPublicId}
 							/>
+							// <MailListItem
+							//     key={threadItem.id}
+							//     message={message}
+							//     activeMailbox={activeMailbox}
+							//     identityPublicId={identityPublicId}
+							// />
 						))}
 					</ul>
 				</div>

@@ -9,9 +9,10 @@
 	"devDependencies": {
 		"@types/mailparser": "^3.4.6",
 		"h3": "^1.15.4",
-		"nitropack": "^2.12.4"
+		"nitropack": "^2.12.6"
 	},
 	"dependencies": {
+		"imapflow": "^1.0.197",
 		"mailparser": "^3.7.4"
 	}
 }

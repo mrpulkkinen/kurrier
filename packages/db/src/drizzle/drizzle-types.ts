@@ -4,6 +4,8 @@ import {
 	identities,
 	mailboxes,
 	messages,
+	threads,
+	messageAttachments,
 } from "./schema";
 import { decryptedSecrets } from "./supabase-schema";
 import { z } from "zod";
@@ -31,6 +33,14 @@ export type MessageEntity = typeof messages.$inferSelect;
 export type MessageCreate = typeof messages.$inferInsert;
 export const MessageInsertSchema = createInsertSchema(messages);
 export type MessageUpdate = Partial<MessageCreate>;
+
+export type MessageAttachmentCreate = typeof messageAttachments.$inferInsert;
+export type MessageAttachmentEntity = typeof messageAttachments.$inferSelect;
+
+export type ThreadEntity = typeof threads.$inferSelect;
+export const ThreadInsertSchema = createInsertSchema(threads);
+export const MessageAttachmentInsertSchema =
+	createInsertSchema(messageAttachments);
 
 export type DecryptedEntity = typeof decryptedSecrets.$inferSelect;
 

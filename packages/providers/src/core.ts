@@ -136,6 +136,18 @@ export interface Mailer {
 		to: string,
 		opts?: { subject?: string; body?: string },
 	): Promise<boolean>;
+	sendEmail(
+		to: string[],
+		opts: {
+			subject: string;
+			text: string;
+			html: string;
+			from: string;
+			inReplyTo: string;
+			references: string[];
+			attachments?: { name: string; content: Blob; contentType: string }[];
+		},
+	): Promise<{ success: boolean; MessageId?: string }>;
 	addDomain(
 		domain: string,
 		mailFrom?: string,
