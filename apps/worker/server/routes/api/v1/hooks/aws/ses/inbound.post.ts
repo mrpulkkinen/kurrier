@@ -157,7 +157,7 @@ export default defineEventHandler(async (event) => {
 
 			console.log("[S3] ObjectCreated:", { bucket, key, size });
 
-			const [, ownerId, providerId, identityId] = key.split("/");
+			const [, ownerId, providerId, identityId, emlId] = key.split("/");
 			const [secrets] = await decryptAdminSecrets({
 				linkTable: providerSecrets,
 				foreignCol: providerSecrets.providerId,
@@ -182,6 +182,15 @@ export default defineEventHandler(async (event) => {
 				new GetObjectCommand({ Bucket: bucket, Key: key }),
 			);
 			const rawEmail = (await getObj?.Body?.transformToString("utf-8")) || "";
+            const encoder = new TextEncoder();
+            const emailBuffer = encoder.encode(rawEmail);
+
+            await supabase
+                .storage
+                .from('attachments')
+                .upload(`eml/${ownerId}/${emlId}`, emailBuffer, {
+                    contentType: "message/rfc822"
+                })
 
 			const parsed = await simpleParser(rawEmail);
 			const headers = parsed.headers as Map<string, any>;
@@ -326,19 +335,21 @@ export default defineEventHandler(async (event) => {
 				console.log("row", row);
 			}
 
-			const channel = supabase.channel(`${ownerId}-mailbox`);
+			const channel = await supabase.channel(`${ownerId}-mailbox`);
 
-			channel.subscribe((status) => {
+            channel.subscribe((status) => {
 				if (status !== "SUBSCRIBED") {
 					return null;
 				}
 				channel.send({
 					type: "broadcast",
-					event: "shout",
-					payload: { message },
+					event: "mail-received",
+					payload: { reload: true },
 				});
+                channel.unsubscribe()
 				return;
 			});
+
 
 			// Optional: fetch the raw RFC822 now (you can move this to a worker if preferred)
 			// const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));

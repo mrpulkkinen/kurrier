@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { MailboxEntity, MessageEntity } from "@db";
 import { useRouter } from "next/navigation";
+import {fromAddress, fromName} from "@/lib/utils";
 
 function MailListItem({
 	message,
@@ -47,7 +48,7 @@ function MailListItem({
 						type="checkbox"
 						// checked={isSelected}
 						// onChange={() => toggleRow(m.id)}
-						aria-label={`Select conversation from ${message?.from?.value[0]?.address}`}
+						aria-label={`Select conversation from ${fromAddress(message)}`}
 						className="h-4 w-4 rounded border-muted-foreground/40"
 					/>
 				</div>
@@ -74,7 +75,7 @@ function MailListItem({
 					].join(" ")}
 					// onClick={() => onOpenMail?.(m.id)}
 				>
-					{message?.from?.value[0]?.name || ""}
+                    {fromName(message)}
 				</div>
 
 				{/* Subject + snippet + chips */}

@@ -9,6 +9,7 @@ import { ActionIcon } from "@mantine/core";
 import { EmailEditorHandle } from "@/components/mailbox/default/editor/email-editor";
 import EditorAttachmentItem from "@/components/mailbox/default/editor/editor-attachment-item";
 import { PublicConfig } from "@schema";
+import {fromAddress, fromName} from "@/lib/utils";
 const EmailEditor = dynamic(
 	() => import("@/components/mailbox/default/editor/email-editor"),
 	{
@@ -116,15 +117,11 @@ function EmailRenderer({
 					<div>
 						<div className={"mt-4 flex gap-1 items-center"}>
 							<div className={"text-sm font-semibold capitalize"}>
-								{message?.from?.value[0]?.name
-									? message?.from?.value[0]?.name
-									: slugify(String(message?.from?.value[0]?.address), {
-											separator: " ",
-										})}
+								{fromName(message) ?? slugify(String(fromAddress(message)), {separator: " "})}
 							</div>
 							<div
 								className={"text-xs"}
-							>{`<${message?.from?.value[0]?.address ?? message?.from?.value[0]?.name}>`}</div>
+							>{`<${fromAddress(message) ?? fromName(message)}>`}</div>
 						</div>
 						<div className={"flex gap-1 items-center"}>
 							<div className={"text-xs"}>to support</div>
@@ -156,7 +153,7 @@ function EmailRenderer({
 
 			{children}
 
-			<div className={"border-t border-dotted"}>
+            {attachments?.length > 0 && <div className={"border-t border-dotted"}>
 				<div className={"font-semibold my-4"}>
 					{attachments?.length} attachments
 				</div>
@@ -171,12 +168,13 @@ function EmailRenderer({
 						);
 					})}
 				</div>
-			</div>
+			</div>}
 
 			{showEditor && (
 				<div>
 					<EmailEditor
 						ref={editorRef}
+                        publicConfig={publicConfig}
 						message={message}
 						onReady={(el) => {
 							scrollToEditor(el, { offsetTop: 72, extra: 240 }); // bump extra if you want more space

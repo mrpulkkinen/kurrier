@@ -7,6 +7,7 @@ import EmailRenderer from "@/components/mailbox/default/email-renderer";
 import { Avatar } from "@mantine/core";
 import { fetchMessageAttachments } from "@/lib/actions/mailbox";
 import { getPublicEnv } from "@schema";
+import {fromAddress, fromName} from "@/lib/utils";
 
 async function Page({
 	params,
@@ -27,8 +28,8 @@ async function Page({
 				<div className={"flex-shrink flex flex-col items-center pt-12"}>
 					<Avatar
 						name={
-							message?.from?.value[0]?.name ||
-							message?.from?.value[0]?.address ||
+							fromName(message) ||
+                            fromAddress(message) ||
 							""
 						}
 						color="initials"

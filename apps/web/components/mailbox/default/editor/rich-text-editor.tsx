@@ -22,12 +22,9 @@ type TextEditorProps = {
 	name?: string;
 	defaultValue?: string;
 	onChange?: (html: string) => void;
-	message: MessageEntity;
 };
 
-import { MessageEntity } from "@db";
 import { Temporal } from "@js-temporal/polyfill";
-import DOMPurify from "dompurify";
 import EditorHeader from "@/components/mailbox/default/editor/editor-header";
 import EditorFooter from "@/components/mailbox/default/editor/editor-footer";
 
@@ -44,32 +41,34 @@ function formatWhen(d: Date) {
 		});
 }
 
-function buildQuotedHtml(msg: MessageEntity, extraTopHtml = "") {
-	const from = msg.fromName || msg.fromEmail || "Unknown sender";
-	const when = msg.date ? formatWhen(new Date(msg.date)) : "";
-	// const raw = msg.html || msg.textAsHtml || (msg.text ? `<pre>${msg.text}</pre>` : "");
-	// const raw = msg.html
-	// const raw = msg.textAsHtml
-	const raw = "";
-	const safeBody = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
-
-	return `
-${extraTopHtml || "<p><br></p>"}
-<p class="reply-preamble">On ${when}, ${from} wrote:</p>
-<blockquote class="quoted-email">${safeBody}</blockquote>
-`;
-}
+// function buildQuotedHtml(msg: MessageEntity, extraTopHtml = "") {
+// 	const from = msg?.from?.value[0]?.name ||
+//         msg?.from?.value[0]?.address || "Unknown sender";
+// 	const when = msg.date ? formatWhen(new Date(msg.date)) : "";
+// 	// const raw = msg.html || msg.textAsHtml || (msg.text ? `<pre>${msg.text}</pre>` : "");
+// 	// const raw = msg.html
+// 	// const raw = msg.textAsHtml
+// 	const raw = "";
+// 	const safeBody = DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+//
+// 	return `
+// ${extraTopHtml || "<p><br></p>"}
+// <p class="reply-preamble">On ${when}, ${from} wrote:</p>
+// <blockquote class="quoted-email">${safeBody}</blockquote>
+// `;
+// }
 
 export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
-	({ name, defaultValue = "", onChange, message }, ref) => {
+	({ name, defaultValue = "", onChange }, ref) => {
 		const containerRef = useRef<HTMLDivElement>(null);
 		const [value, setValue] = useState(defaultValue);
 		const [textValue, setTextValue] = useState("");
 
-		const initialHtml = useMemo(
-			() => buildQuotedHtml(message, defaultValue),
-			[message, defaultValue],
-		);
+
+		// const initialHtml = useMemo(
+		// 	() => buildQuotedHtml(message, defaultValue),
+		// 	[message, defaultValue],
+		// );
 
 		const editor = useEditor({
 			immediatelyRender: false,
@@ -110,7 +109,7 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
 					className={"!border !rounded-t-md !border-neutral-200"}
 				>
 					<EditorHeader />
-					<RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
+                    <RichTextEditor.Content className="prose min-h-52 text-sm p-2 leading-5" />
 					<EditorFooter />
 				</RichTextEditor>
 

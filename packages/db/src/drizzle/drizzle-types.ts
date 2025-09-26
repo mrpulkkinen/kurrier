@@ -37,6 +37,7 @@ export type MessageUpdate = Partial<MessageCreate>;
 export type MessageAttachmentCreate = typeof messageAttachments.$inferInsert;
 export type MessageAttachmentEntity = typeof messageAttachments.$inferSelect;
 
+export type ThreadEntity = typeof threads.$inferSelect;
 export const ThreadInsertSchema = createInsertSchema(threads);
 export const MessageAttachmentInsertSchema =
 	createInsertSchema(messageAttachments);

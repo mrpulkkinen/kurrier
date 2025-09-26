@@ -453,7 +453,7 @@ export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
 
 	const rls = await rlsClient();
 	await rls((tx) => {
-		return tx.insert(mailboxes).values(rows).onConflictDoNothing();
+		return tx.insert(mailboxes).values(rows).onConflictDoNothing().returning();
 	});
 
 	// await db.insert(mailboxes).values(
@@ -482,9 +482,10 @@ export async function addNewEmailIdentity(
 
 		if (data.smtpAccountId) {
 			const identityData = IdentityInsertSchema.parse(data);
-			await rls((tx) =>
-				tx.insert(identities).values(identityData as IdentityCreate),
+			const [identity] = await rls((tx) =>
+				tx.insert(identities).values(identityData as IdentityCreate).returning(),
 			);
+            await initializeMailboxes(identity);
 		} else {
 			data.domainIdentityId = data.domain;
 
@@ -497,7 +498,6 @@ export async function addNewEmailIdentity(
 
 			const id = uuidv4();
 			const initRes = await initializeEmailIdentity(data, id);
-			console.log("initRes", initRes);
 			if (!initRes.success || !initRes.data) {
 				throw new Error("Failed to initialize email identity");
 			}

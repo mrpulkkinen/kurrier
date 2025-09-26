@@ -134,6 +134,10 @@ export class SmtpMailer implements Mailer {
 		return {} as any;
 	}
 
+    async sendEmail() {
+        return {} as any;
+    }
+
 	// async close(): Promise<void> {
 	//     // best-effort close if transport supports it
 	//     try {

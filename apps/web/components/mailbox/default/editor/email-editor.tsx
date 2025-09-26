@@ -14,7 +14,7 @@ import {
 } from "@/components/mailbox/default/editor/rich-text-editor";
 import Form from "next/form";
 import { sendMail } from "@/lib/actions/mailbox";
-import type { FormState } from "@schema";
+import type {FormState, PublicConfig} from "@schema";
 import { DynamicContextProvider } from "@/hooks/use-dynamic-context";
 import { toast, Toaster } from "sonner";
 import { useAppearance } from "@/components/providers/appearance-provider";
@@ -24,10 +24,10 @@ export type EmailEditorHandle = {
 	getElement: () => HTMLElement | null;
 };
 
-type Props = { onReady?: (el: HTMLElement) => void; message: MessageEntity };
+type Props = { onReady?: (el: HTMLElement) => void; message: MessageEntity, publicConfig: PublicConfig };
 
 const EmailEditor = forwardRef<EmailEditorHandle, Props>(
-	({ onReady, message }, ref) => {
+	({ onReady, message, publicConfig }, ref) => {
 		const textEditorRef = useRef<TextEditorHandle>(null);
 
 		useImperativeHandle(
@@ -66,10 +66,9 @@ const EmailEditor = forwardRef<EmailEditorHandle, Props>(
 			<>
 				<Toaster theme={mode} expand={true} />
 				<div className="mt-4" tabIndex={-1}>
-					<DynamicContextProvider initialState={{ isPending }}>
+					<DynamicContextProvider initialState={{ isPending, message, publicConfig }}>
 						<Form action={formAction}>
-							<input type={"hidden"} name={"messageId"} value={message.id} />
-							<TextEditor name={"html"} ref={textEditorRef} message={message} />
+							<TextEditor name={"html"} ref={textEditorRef} />
 						</Form>
 					</DynamicContextProvider>
 				</div>

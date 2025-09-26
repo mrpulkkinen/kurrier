@@ -692,18 +692,6 @@ export const messages = pgTable(
 		cc: jsonb("cc").$type<AddressObjectJSON | null>().default(sql`null`),
 		bcc: jsonb("bcc").$type<AddressObjectJSON | null>().default(sql`null`),
 
-		// to: jsonb("to")
-		// 	.$type<Array<{ name?: string; email: string }>>()
-		// 	.default(sql`'[]'::jsonb`),
-		// from: jsonb("from")
-		//     .$type<Array<{ name?: string; email: string }>>()
-		//     .default(sql`'[]'::jsonb`),
-		// cc: jsonb("cc")
-		// 	.$type<Array<{ name?: string; email: string }>>()
-		// 	.default(sql`'[]'::jsonb`),
-		// bcc: jsonb("bcc")
-		// 	.$type<Array<{ name?: string; email: string }>>()
-		// 	.default(sql`'[]'::jsonb`),
 		date: timestamp("date", { withTimezone: true }),
 		sizeBytes: integer("size_bytes"),
 		seen: boolean("seen").notNull().default(false),
