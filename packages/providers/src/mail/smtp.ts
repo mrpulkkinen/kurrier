@@ -16,7 +16,7 @@ export class SmtpMailer implements Mailer {
 		this.transporter = nodemailer.createTransport({
 			host: cfg.host,
 			port: cfg.port,
-			secure: cfg.secure ?? false,
+            secure: cfg.secure ?? cfg.port === 465,
 			auth: cfg.auth,
 			pool: cfg.pool ?? false,
 		});
@@ -134,9 +134,49 @@ export class SmtpMailer implements Mailer {
 		return {} as any;
 	}
 
-	async sendEmail() {
-		return {} as any;
-	}
+    async sendEmail(
+        to: string[],
+        opts: {
+            subject: string;
+            text: string;
+            html: string;
+            from: string;
+            inReplyTo: string;
+            references: string[];
+            attachments?: { name: string; content: Blob; contentType: string }[];
+        },
+    ): Promise<{ success: boolean; MessageId?: string }> {
+        try {
+            // convert Blob attachments -> Nodemailer format (Buffer)
+            const attachments =
+                await Promise.all(
+                    (opts.attachments ?? []).map(async (a) => ({
+                        filename: a.name,
+                        content: Buffer.from(await a.content.arrayBuffer()),
+                        contentType: a.contentType || "application/octet-stream",
+                    })),
+                );
+
+            const headers: Record<string, string> = {};
+            if (opts.inReplyTo) headers["In-Reply-To"] = opts.inReplyTo;
+            if (opts.references?.length) headers["References"] = opts.references.join(" ");
+
+            const info = await this.transporter.sendMail({
+                from: opts.from,
+                to,                                            // array is fine; Nodemailer will join
+                subject: opts.subject,
+                text: opts.text || undefined,
+                html: opts.html || undefined,
+                headers,
+                attachments,
+            });
+
+            return { success: true, MessageId: String(info.messageId || "") };
+        } catch (err) {
+            // You can add logging here if desired
+            return { success: false };
+        }
+    }
 
 	// async close(): Promise<void> {
 	//     // best-effort close if transport supports it

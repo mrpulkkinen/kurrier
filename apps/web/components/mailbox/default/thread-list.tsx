@@ -136,21 +136,21 @@ export default function ThreadList({
 			)
 			.subscribe();
 
-		console.log("Listening to mailbox changes on channel:");
-		const testChannel = supabase.channel(`smtp-worker`);
-		testChannel.subscribe((status) => {
-			if (status !== "SUBSCRIBED") {
-				return null;
-			}
-			testChannel.send({
-				type: "broadcast",
-				event: "backfill",
-				payload: { identityId: "956279b4-23e0-41ee-977c-ca82223c5cbd" },
-			});
-			testChannel.unsubscribe();
-
-			return;
-		});
+		// console.log("Listening to mailbox changes on channel:");
+		// const testChannel = supabase.channel(`smtp-worker`);
+		// testChannel.subscribe((status) => {
+		// 	if (status !== "SUBSCRIBED") {
+		// 		return null;
+		// 	}
+		// 	testChannel.send({
+		// 		type: "broadcast",
+		// 		event: "backfill",
+		// 		payload: { identityId: activeMailbox.identityId },
+		// 	});
+		// 	testChannel.unsubscribe();
+        //
+		// 	return;
+		// });
 	};
 
 	useEffect(() => {
@@ -159,8 +159,29 @@ export default function ThreadList({
 
 	// const [activeMessage, setActiveMessage] = useState<string | null>(null);
 
+    const triggerSync = async () => {
+        const supabase = createClient(publicConfig);
+
+        const testChannel = supabase.channel(`smtp-worker`);
+        testChannel.subscribe((status) => {
+            if (status !== "SUBSCRIBED") {
+                return null;
+            }
+            testChannel.send({
+                type: "broadcast",
+                event: "delta",
+                payload: { identityId: activeMailbox.identityId },
+            });
+            testChannel.unsubscribe();
+
+            return;
+        });
+        await revalidateMailbox("/mail");
+    };
+
 	return (
 		<>
+            <button onClick={triggerSync}>Trigger</button>
 			{threads.length === 0 ? (
 				<div className="p-4 text-center text-base text-muted-foreground">
 					No messages in{" "}

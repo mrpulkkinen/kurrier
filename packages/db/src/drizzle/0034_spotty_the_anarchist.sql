@@ -1,0 +1,1 @@
+ALTER TABLE "mailbox_sync" ADD COLUMN "uid_validity" bigint NOT NULL;

@@ -196,6 +196,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.13
         version: 4.1.13
+      '@types/imapflow':
+        specifier: ^1.0.23
+        version: 1.0.23
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -4521,6 +4524,12 @@ packages:
 
   /@types/estree@1.0.8:
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+    dev: true
+
+  /@types/imapflow@1.0.23:
+    resolution: {integrity: sha512-/p6I5UBzoYWjLNsd5P4WHaQPFUe9QLTvoDYsfoP8Lp7bDLjhusjwDzZxWT4ukYyhgOcOuXyDrn19h0KrEp7WIA==}
+    dependencies:
+      '@types/node': 24.5.2
     dev: true
 
   /@types/linkify-it@5.0.0:

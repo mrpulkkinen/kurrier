@@ -74,6 +74,7 @@ const EmailEditor = forwardRef<EmailEditorHandle, Props>(
 						initialState={{ isPending, message, publicConfig }}
 					>
 						<Form action={formAction}>
+                            <input type={"hidden"} name={"mailboxId"} value={message.mailboxId}/>
 							<TextEditor name={"html"} ref={textEditorRef} />
 						</Form>
 					</DynamicContextProvider>

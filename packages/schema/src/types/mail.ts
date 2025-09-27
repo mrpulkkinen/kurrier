@@ -35,6 +35,12 @@ export const messageStatesList = [
 	"failed",
 ] as const;
 
+export const mailboxSyncPhase = [
+    "BOOTSTRAP",
+    "BACKFILL",
+    "IDLE",
+] as const;
+
 export const messagePriorityList = ["low", "medium", "high"] as const;
 
 export const MessageStateEnum = z.enum(messageStatesList);
@@ -72,6 +78,13 @@ export const SYSTEM_MAILBOXES: Array<{
 	{ kind: "outbox", isDefault: false },
 ];
 
+export const SMTP_MAILBOXES: Array<{
+    kind: MailboxKind;
+    isDefault: boolean;
+}> = [
+    { kind: "inbox", isDefault: true },
+];
+
 export type EmailAddressJSON = {
 	address?: string | null;
 	name: string;
@@ -93,4 +106,12 @@ export type MailComposeInput = {
 	text?: string;
 	html?: string;
 	mode: ComposeMode;
+};
+
+export type BackfillItem = {
+    mailboxId: string;
+    identityId: string;
+    path: string;
+    specialUse: string | null;
+    priority: number;     // lower = sooner
 };
