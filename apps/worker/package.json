@@ -3,8 +3,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "dotenvx run -f ../../.env -- nitro dev --port 3001",
-		"build": "dotenvx run -f ../../.env -- nitro build",
-		"start": "node .output/server/index.mjs"
+        "build": "nitro build",
+        "start": "node .output/server/index.mjs"
 	},
 	"devDependencies": {
 		"@types/mailparser": "^3.4.6",

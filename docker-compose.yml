@@ -1,0 +1,25 @@
+services:
+  web:
+    image: ghcr.io/<owner>/kurrier-web:${VERSION:-latest}
+    env_file: [ db/.env, .env ]
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on: [ db ]
+
+  worker:
+    image: ghcr.io/<owner>/kurrier-worker:${VERSION:-latest}
+    env_file: [ db/.env, .env ]
+    depends_on: [ db ]
+
+  studio: {}
+  kong: {}
+  auth: {}
+  rest: {}
+  realtime: {}
+  storage: {}
+  imgproxy: {}
+  meta: {}
+  functions: {}
+  analytics: {}
+  db: {}
+  supavisor: {}

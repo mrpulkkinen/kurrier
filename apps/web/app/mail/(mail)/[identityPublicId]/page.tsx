@@ -1,13 +1,6 @@
 import React from "react";
-import { identities, mailboxes } from "@db";
-import { rlsClient } from "@/lib/actions/clients";
-import { and, eq } from "drizzle-orm";
 
-async function Page({
-	params,
-}: {
-	params: { identityPublicId: string; mailboxSlug?: string };
-}) {
+async function Page() {
 	// const {identityPublicId, mailboxSlug="inbox"} = await params;
 	// const rls = await rlsClient();
 	// const [identity] = await rls((tx) =>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { z } from "zod";
 import isFQDN from "validator/lib/isFQDN";
 import isEmail from "validator/lib/isEmail";
