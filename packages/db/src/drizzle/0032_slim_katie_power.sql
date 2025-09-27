@@ -1,0 +1,1 @@
+ALTER TABLE "mailboxes" ADD COLUMN "meta" jsonb DEFAULT 'null'::jsonb;

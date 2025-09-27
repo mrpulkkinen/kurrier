@@ -30,12 +30,12 @@ import { modals } from "@mantine/modals";
 import { PROVIDER_CONFIG } from "@/components/dashboard/identities/PROVIDER_CONFIG";
 import AddEmailIdentityForm from "@/components/dashboard/identities/add-email-identity-form";
 import {
-	deleteDomainIdentity,
-	deleteEmailIdentity,
-	FetchDecryptedSecretsResult,
-	FetchUserIdentitiesResult,
-	testSendingEmail,
-	verifyDomainIdentity,
+    deleteDomainIdentity,
+    deleteEmailIdentity,
+    FetchDecryptedSecretsResult,
+    FetchUserIdentitiesResult,
+    testSendingEmail, triggerWorker,
+    verifyDomainIdentity,
 } from "@/lib/actions/dashboard";
 import ProviderBadge from "@/components/dashboard/identities/provider-badge";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
@@ -837,6 +837,7 @@ export default function MailIdentities({
 
 										{/* Right: actions */}
 										<div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                                            <button onClick={() => triggerWorker(userIdentity.identities.id)}>trigger</button>
 											<Button
 												leftSection={<IconSend size={16} />}
 												size="xs"

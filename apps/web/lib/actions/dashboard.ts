@@ -17,16 +17,16 @@ import {
 	updateSecret,
 } from "@db";
 import {
-	DomainIdentityFormSchema,
-	FormState,
-	getPublicEnv,
-	handleAction,
-	MailboxKindDisplay,
-	ProviderAccountFormSchema,
-	Providers,
-	PROVIDERS,
-	SmtpAccountFormSchema,
-	SYSTEM_MAILBOXES,
+    DomainIdentityFormSchema,
+    FormState,
+    getPublicEnv, getServerEnv,
+    handleAction,
+    MailboxKindDisplay,
+    ProviderAccountFormSchema,
+    Providers,
+    PROVIDERS, SMTP_MAILBOXES,
+    SmtpAccountFormSchema,
+    SYSTEM_MAILBOXES,
 } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
 import { eq } from "drizzle-orm";
@@ -39,6 +39,7 @@ import { z } from "zod";
 import slugify from "@sindresorhus/slugify";
 import { rlsClient } from "@/lib/actions/clients";
 import { v4 as uuidv4 } from "uuid";
+import {createClient} from "@/lib/supabase/server";
 
 const DASHBOARD_PATH = "/dashboard/providers";
 
@@ -437,9 +438,35 @@ const initializeEmailIdentity = async (
 	});
 };
 
+export const triggerWorker = async (id: string) => {
+    console.log("Listening to mailbox changes on channel:");
+    const supabase = await createClient()
+    const testChannel = supabase.channel(`smtp-worker`);
+    testChannel.subscribe((status) => {
+        if (status !== "SUBSCRIBED") {
+            return null;
+        }
+        testChannel.send({
+            type: "broadcast",
+            event: "backfill",
+            payload: { identityId: id },
+        });
+        testChannel.unsubscribe();
+
+        return;
+    });
+    return
+}
+
+
 export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
 	// sanity check: only for email kind
 	if (emailIdentity.kind !== "email") return;
+
+    if (emailIdentity.smtpAccountId) return
+
+    // console.log("emailIdentity", emailIdentity)
+    // const mailboxTemplates = emailIdentity.smtpAccountId ? SMTP_MAILBOXES : SYSTEM_MAILBOXES;
 
 	// insert one row per mailbox kind
 	const rows = SYSTEM_MAILBOXES.map((m) => ({
