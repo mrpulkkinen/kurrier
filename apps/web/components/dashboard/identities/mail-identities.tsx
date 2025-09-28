@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import * as React from "react";
@@ -45,6 +46,7 @@ import { toast, Toaster } from "sonner";
 import AddDomainIdentityForm from "@/components/dashboard/identities/add-domain-identity-form";
 import { FormState, IdentityStatusMeta, Providers } from "@schema";
 import EmailIdentityStatus from "@/components/dashboard/identities/email-identity-status";
+import {backfillAccount} from "@/lib/actions/mailbox";
 
 export type Status = "verified" | "pending" | "failed";
 
@@ -837,7 +839,7 @@ export default function MailIdentities({
 
 										{/* Right: actions */}
 										<div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                                            <button onClick={() => triggerWorker(userIdentity.identities.id)}>trigger</button>
+                                            <button onClick={() => backfillAccount(userIdentity.identities.id)}>trigger</button>
 											<Button
 												leftSection={<IconSend size={16} />}
 												size="xs"

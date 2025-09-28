@@ -13,12 +13,12 @@ import {
     providerSecrets, smtpAccounts, smtpAccountSecrets,
     threads,
 } from "@db";
-import { and, desc, eq } from "drizzle-orm";
+import {and, asc, desc, eq} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
-	ComposeMode,
-	FormState,
-	MailComposeInput,
+    ComposeMode,
+    FormState, getServerEnv,
+    MailComposeInput,
 } from "@schema";
 import { decode } from "decode-formdata";
 import { fetchDecryptedSecrets } from "@/lib/actions/dashboard";
@@ -26,6 +26,37 @@ import { createMailer } from "@providers";
 import { fromAddress, fromName, toArray } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseClient } from "@supabase/supabase-js";
+import {Queue, QueueEvents} from "bullmq";
+// const {REDIS_PASSWORD, REDIS_HOST, REDIS_PORT} = getServerEnv()
+//
+// const redisConnection = {
+//     connection: {
+//         host: REDIS_HOST || 'redis',
+//         port: Number(REDIS_PORT || 6379),
+//         password: REDIS_PASSWORD
+//     }
+// };
+// const smtpQueue = new Queue('smtp-worker', redisConnection);
+// const smtpEvents = new QueueEvents('smtp-worker', redisConnection);
+// await smtpEvents.waitUntilReady();
+
+const getRedis = async () => {
+    const {REDIS_PASSWORD, REDIS_HOST, REDIS_PORT} = getServerEnv()
+
+    const redisConnection = {
+        connection: {
+            host: REDIS_HOST || 'redis',
+            port: Number(REDIS_PORT || 6379),
+            password: REDIS_PASSWORD
+        }
+    };
+    const smtpQueue = new Queue('smtp-worker', redisConnection);
+    const smtpEvents = new QueueEvents('smtp-worker', redisConnection);
+    await smtpEvents.waitUntilReady();
+    return {
+        smtpQueue, smtpEvents
+    }
+};
 
 export const fetchMailbox = cache(
 	async (identityPublicId: string, mailboxSlug = "inbox") => {
@@ -84,6 +115,7 @@ export const fetchMailboxThreads = cache(
 				.from(threads)
 				.leftJoin(messages, eq(messages.threadId, threads.id))
 				.where(and(...conditions))
+                .limit(50)
 				.orderBy(desc(threads.lastMessageDate), desc(messages.createdAt)),
 		);
 
@@ -374,3 +406,23 @@ export async function sendMail(
 
 	return { success: true };
 }
+
+export const deltaFetch = async ({identityId}: {identityId: string}) => {
+    const {smtpQueue, smtpEvents} = await getRedis()
+    // await deltaQueue.add("delta-fetch", { identityId }, { jobId: `delta-fetch-${identityId}` });
+    const job = await smtpQueue.add("delta-fetch", { identityId });
+    const result = await job.waitUntilFinished(smtpEvents);
+    console.log("Worker result:", result);
+};
+
+export const backfillAccount = async (identityId: string) => {
+    const {smtpQueue, smtpEvents} = await getRedis()
+    const job = await smtpQueue.add("backfill", { identityId }, {
+        jobId: `backfill-${identityId}`,
+        attempts: 3,
+        backoff: {
+            type: "exponential",
+            delay: 1000
+        }});
+    // await job.waitUntilFinished(smtpEvents);
+};

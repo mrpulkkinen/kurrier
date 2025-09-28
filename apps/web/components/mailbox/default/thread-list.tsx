@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import {
 	Star,
@@ -16,8 +15,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PublicConfig } from "@schema";
 import {
-	FetchMailboxThreadsResult,
-	revalidateMailbox,
+    deltaFetch,
+    FetchMailboxThreadsResult,
+    revalidateMailbox,
 } from "@/lib/actions/mailbox";
 import MailListItem from "@/components/mailbox/default/mail-list-item";
 import MailListHeader from "@/components/mailbox/default/mail-list-header";
@@ -125,7 +125,10 @@ export default function ThreadList({
 	const startListener = async () => {
 		const supabase = createClient(publicConfig);
 
-		const myChannel = supabase.channel(`${activeMailbox.ownerId}-mailbox`);
+        await deltaFetch({identityId: activeMailbox.identityId})
+
+
+        const myChannel = supabase.channel(`${activeMailbox.ownerId}-mailbox`);
 		function messageReceived(payload: any) {
 			console.log("Message received!", payload);
 			revalidateMailbox("/mail");

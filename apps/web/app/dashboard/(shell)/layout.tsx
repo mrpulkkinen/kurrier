@@ -8,10 +8,8 @@ import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardLayout({
 	children,
-	breadcrumb,
 }: {
 	children: React.ReactNode;
-	breadcrumb: React.ReactNode;
 }) {
 	return (
 		<SidebarProvider>
@@ -24,7 +22,7 @@ export default async function DashboardLayout({
 							orientation="vertical"
 							className="mr-2 data-[orientation=vertical]:h-4"
 						/>
-						{breadcrumb ?? null} {/* fallback if no breadcrumb provided */}
+						{/*{breadcrumb ?? null} /!* fallback if no breadcrumb provided *!/*/}
 						{/*<Breadcrumb>*/}
 						{/*	<BreadcrumbList>*/}
 						{/*		<BreadcrumbItem className="hidden md:block">*/}

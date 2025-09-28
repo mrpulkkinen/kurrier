@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';   // or
+
 import React, { useEffect, useState } from "react";
 import IsVerifiedStatus from "../providers/is-verified-status";
 import {

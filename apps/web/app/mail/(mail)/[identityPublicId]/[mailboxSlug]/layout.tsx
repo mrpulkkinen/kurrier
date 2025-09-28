@@ -2,15 +2,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import MailboxSearch from "@/components/mailbox/default/mailbox-search";
 import React from "react";
-import { PublicConfig } from "@schema";
-import { MailboxEntity, MessageEntity } from "@db";
 
 export default async function DashboardLayout({
 	children,
-	params,
 }: {
 	children: React.ReactNode;
-	params: { identityPublicId: string; mailboxSlug?: string };
 }) {
 	return (
 		<>
