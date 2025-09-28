@@ -26,8 +26,24 @@ const supabase = createClient(
     publicConfig.SUPABASE_DOMAIN,
     serverConfig.SUPABASE_SERVICE_ROLE_KEY,
 );
+import IORedis from 'ioredis';
+import { Worker } from 'bullmq';
+
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// const redisConnection = {
+//     connection: {
+//         host: serverConfig.REDIS_HOST || 'redis',
+//         port: Number(serverConfig.REDIS_PORT || 6379),
+//         password: serverConfig.REDIS_PASSWORD
+//     }
+// };
+const connection = new IORedis({
+    maxRetriesPerRequest: null,
+    password: serverConfig.REDIS_PASSWORD,
+    host: serverConfig.REDIS_HOST || 'redis',
+    port: Number(serverConfig.REDIS_PORT || 6379),
+})
 
 export default defineNitroPlugin(async (nitroApp) => {
     console.log("************************************************************");
@@ -35,7 +51,85 @@ export default defineNitroPlugin(async (nitroApp) => {
     console.log("************************************************************");
     console.log("************************************************************");
 
+    const worker = new Worker(
+        'smtp-worker',
+        async job => {
+            if (job.name === "delta-fetch"){
+                const identityId = job.data.identityId
+                await deltaFetch(identityId)
+            } else if (job.name === "backfill"){
+                const identityId = job.data.identityId
+                const client = await initBackfillClient(identityId);
+                if (client?.authenticated && client?.usable) {
+                    await startBackfill(client, identityId);
+                }
+            }
+            return {success: true}
+        },
+        { connection },
+    );
+
+    worker.on('completed', job => {
+        console.log(`${job.id} has completed!`);
+    });
+
+    worker.on('failed', (job, err) => {
+        console.log(`${job?.id} has failed with ${err.message}`);
+    });
+
     const imapInstances = new Map<string, ImapFlow>();
+
+
+    const deltaFetch = async (identityId: string) => {
+
+        const client = await initBackfillClient(identityId);
+        if (!client?.authenticated || !client?.usable) return;
+
+        const [identity] = await db
+            .select()
+            .from(identities)
+            .where(eq(identities.id, identityId));
+        const ownerId = identity?.ownerId;
+        if (!ownerId) return;
+
+        const mailboxRows = await db
+            .select()
+            .from(mailboxes)
+            .where(eq(mailboxes.identityId, identityId));
+
+        for (const row of mailboxRows) {
+            // Only sync when fully idle (not during backfill or uninitialized)
+            const [syncRow] = await db
+                .select()
+                .from(mailboxSync)
+                .where(
+                    and(
+                        eq(mailboxSync.identityId, identityId),
+                        eq(mailboxSync.mailboxId, row.id),
+                    ),
+                );
+            if (!syncRow) continue;
+            if (syncRow.phase !== "IDLE" || Number(syncRow.backfillCursorUid || 0) > 0)
+                continue;
+
+            await syncMailbox({
+                client,
+                identityId: identityId,
+                mailboxId: row.id,
+                path: String(row?.metaData?.imap.path),
+                window: 500,
+                onMessage: async (msg) => {
+                    const raw = (await msg?.source?.toString()) || "";
+                    await parseAndStoreEmail(raw, {
+                        ownerId,
+                        mailboxId: row.id,
+                        rawStorageKey: `eml/${ownerId}/${row.id}/${msg.uid}.eml`,
+                        emlKey: String(msg.id),
+                    });
+                },
+            });
+        }
+    };
 
     const backfillChannel = supabase.channel(`smtp-worker`);
     backfillChannel

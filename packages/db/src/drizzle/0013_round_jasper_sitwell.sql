@@ -1,1 +1,0 @@
-ALTER TABLE "identities" RENAME COLUMN "incomingEnabled" TO "incoming_domain";

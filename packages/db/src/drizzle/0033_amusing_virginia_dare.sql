@@ -1,1 +1,0 @@
-ALTER TABLE "mailbox_sync" DROP COLUMN "uid_validity";

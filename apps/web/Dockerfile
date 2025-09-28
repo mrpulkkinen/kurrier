@@ -28,9 +28,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG DATABASE_URL="postgresql://user:pass@localhost:5432/postgres"
 ARG DATABASE_RLS_URL="postgresql://user:pass@localhost:5432/postgres"
 ARG SUPABASE_SERVICE_ROLE_KEY="placeholder"
+ARG REDIS_PASSWORD="placeholder"
+ARG REDIS_HOST=redis
+ARG REDIS_PORT=6379
 ENV DATABASE_URL=$DATABASE_URL
 ENV DATABASE_RLS_URL=$DATABASE_RLS_URL
 ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+ENV REDIS_PASSWORD=$REDIS_PASSWORD
+ENV REDIS_HOST=$REDIS_HOST
+ENV REDIS_PORT=$REDIS_PORT
 # ---------------------------------------------
 
 RUN pnpm run build
@@ -60,93 +66,3 @@ EXPOSE 3000
 # In a monorepo, Next puts server.js under {APP_DIR}/server.js
 CMD ["sh", "-c", "node $APP_DIR/server.js"]
 
-
-
-
-## --- build ---
-#FROM node:20-alpine AS build
-#WORKDIR /repo
-#RUN corepack enable
-#
-## Copy lockfiles + workspace manifest
-#COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-#
-## Copy workspace packages + app BEFORE install so pnpm links workspaces
-#COPY packages ./packages
-#COPY apps/web ./apps/web
-#
-## Install deps
-#RUN pnpm install --frozen-lockfile
-#
-## Build Next.js app
-#WORKDIR /repo/apps/web
-#ENV NEXT_TELEMETRY_DISABLED=1
-#
-## ---- Build-time placeholders (server-only) ----
-## These unblock Next/Turbopack if some code reads env during build.
-## They are safe because runtime env will override them.
-#ARG DATABASE_URL="postgresql://user:pass@localhost:5432/postgres"
-#ARG DATABASE_RLS_URL="postgresql://user:pass@localhost:5432/postgres"
-#ARG SUPABASE_SERVICE_ROLE_KEY="placeholder"
-#
-## Expose them to the build process (only in this stage)
-#ENV DATABASE_URL=$DATABASE_URL
-#ENV DATABASE_RLS_URL=$DATABASE_RLS_URL
-#ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
-## -----------------------------------------------
-#
-#RUN pnpm run build
-#
-## --- run ---
-#FROM node:20-alpine
-#WORKDIR /app
-#ENV NODE_ENV=production
-#ENV HOST=0.0.0.0
-#ENV PORT=3000
-#
-## Copy only what we need to run
-#COPY --from=build /repo/apps/web/.next ./.next
-#COPY --from=build /repo/apps/web/public ./public
-#COPY --from=build /repo/apps/web/package.json ./package.json
-#COPY --from=build /repo/node_modules ./node_modules
-#
-#EXPOSE 3000
-#CMD ["node", "node_modules/.bin/next", "start", "-p", "3000"]
-#
-#
-#
-### --- build ---
-##FROM node:20-alpine AS build
-##WORKDIR /repo
-##RUN corepack enable
-##
-### Copy lockfiles + workspace manifest
-##COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-##
-### Copy workspace packages + app
-##COPY packages ./packages
-##COPY apps/web ./apps/web
-##
-### Install dependencies (now that workspace code is in place)
-##RUN pnpm install --frozen-lockfile
-##
-### Build Next.js app
-##WORKDIR /repo/apps/web
-##ENV NEXT_TELEMETRY_DISABLED=1
-##RUN pnpm run build
-##
-### --- run ---
-##FROM node:20-alpine
-##WORKDIR /app
-##ENV NODE_ENV=production
-##ENV PORT=3000
-##ENV HOST=0.0.0.0
-##
-### Copy only production build output and needed files
-##COPY --from=build /repo/apps/web/.next ./.next
-##COPY --from=build /repo/apps/web/public ./public
-##COPY --from=build /repo/apps/web/package.json ./package.json
-##COPY --from=build /repo/node_modules ./node_modules
-##
-##EXPOSE 3000
-##CMD ["node", "node_modules/.bin/next", "start", "-p", "3000"]

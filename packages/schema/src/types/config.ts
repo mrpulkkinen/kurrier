@@ -17,6 +17,9 @@ export const ZServerConfig = z.object({
 	SUPABASE_SERVICE_ROLE_KEY: z.string(
 		"NEXT_SUPABASE_SERVICE_ROLE_KEY must be present",
 	),
+    REDIS_PASSWORD: z.string("REDIS_PASSWORD must be present",),
+    REDIS_HOST: z.string("REDIS_HOST must be present",),
+    REDIS_PORT: z.string("REDIS_PORT must be present",),
 });
 
 /** Safe to expose to the browser */

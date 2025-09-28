@@ -114,7 +114,7 @@ export default function ThreadListItem({
 					<MailOpen className="h-4 w-4 text-muted-foreground md:hidden" />
 				)}
 				<time className="whitespace-nowrap text-sm text-foreground">
-					{/*{dateLabel}*/}
+					{dateLabel}
 				</time>
 			</div>
 
