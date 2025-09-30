@@ -3,8 +3,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "dotenvx run -f ../../.env -- nitro dev --port 3001",
-        "build": "nitro build",
-        "start": "node .output/server/index.mjs"
+		"build": "nitro build",
+		"start": "node .output/server/index.mjs"
 	},
 	"devDependencies": {
 		"@types/mailparser": "^3.4.6",
@@ -12,6 +12,7 @@
 		"nitropack": "^2.12.6"
 	},
 	"dependencies": {
+		"@supabase/ssr": "^0.7.0",
 		"imapflow": "^1.0.197",
 		"mailparser": "^3.7.4"
 	}

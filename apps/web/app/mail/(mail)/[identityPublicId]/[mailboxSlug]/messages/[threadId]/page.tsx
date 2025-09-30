@@ -1,7 +1,9 @@
 import React from "react";
-import { fetchMailbox, fetchMailboxThreads } from "@/lib/actions/mailbox";
+import {fetchMailbox, fetchMailboxThreads, fetchThreadDetail} from "@/lib/actions/mailbox";
 import ThreadItem from "@/components/mailbox/default/thread-item";
 import { Divider } from "@mantine/core";
+import {db, threads} from "@db";
+import {eq} from "drizzle-orm";
 
 async function Page({
 	params,
@@ -10,8 +12,8 @@ async function Page({
 }) {
 	const { threadId, mailboxSlug, identityPublicId } = await params;
 	const { activeMailbox } = await fetchMailbox(identityPublicId, mailboxSlug);
-	const { threads } = await fetchMailboxThreads(activeMailbox.id, threadId);
-	const activeThread = threads.find((t) => t.thread.id === threadId);
+    const activeThread = await fetchThreadDetail(activeMailbox.id, threadId);
+    console.log("activeThread", activeThread)
 
 	return (
 		<>

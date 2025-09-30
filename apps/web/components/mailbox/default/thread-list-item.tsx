@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import {
 	Archive,
@@ -10,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { MailboxEntity } from "@db";
 import { FetchMailboxThreadsResult } from "@/lib/actions/mailbox";
-import { fromName, fromAddress } from "@/lib/utils";
+import { fromName, fromAddress } from "@schema";
 
 type Props = {
 	threadItem: FetchMailboxThreadsResult["threads"][number];
@@ -35,22 +36,24 @@ export default function ThreadListItem({
 	).join(", ");
 
 	const subject = first.subject || "(no subject)";
-	const snippet = (first.text || first.textAsHtml || "")
-		.toString()
-		.replace(/\s+/g, " ")
-		.slice(0, 100);
+	// const snippet = (first.text || first.textAsHtml || "")
+	// 	.toString()
+	// 	.replace(/\s+/g, " ")
+	// 	.slice(0, 100);
+    const snippet = first.snippet
 
 	const unread = messages.some((m) => !m.seen); // ← correct polarity
 	const hasAttachments = messages.some((m) => !!m.hasAttachments);
 
-	const date = new Date(thread.lastMessageDate || last.date || Date.now());
+	// const date = new Date(thread.lastMessageDate || last.date || Date.now());
+	const date = new Date(last.date || Date.now());
 	const dateLabel = isNaN(date.getTime())
 		? ""
 		: date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 	const openThread = () => {
 		// router.push(`/mail/${identityPublicId}/${activeMailbox.slug}/${last.id}`);
-		router.push(`/mail/${identityPublicId}/${activeMailbox.slug}/${thread.id}`);
+		router.push(`/mail/${identityPublicId}/${activeMailbox.slug}/messages/${thread.id}`);
 	};
 
 	// Width reserved on the right so text never collides with the overlay actions
@@ -114,7 +117,7 @@ export default function ThreadListItem({
 					<MailOpen className="h-4 w-4 text-muted-foreground md:hidden" />
 				)}
 				<time className="whitespace-nowrap text-sm text-foreground">
-					{dateLabel}
+					{/*{dateLabel}*/}
 				</time>
 			</div>
 

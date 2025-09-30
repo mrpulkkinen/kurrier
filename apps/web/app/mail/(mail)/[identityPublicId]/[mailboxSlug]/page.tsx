@@ -1,41 +1,35 @@
-import React from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import MailboxSearch from "@/components/mailbox/default/mailbox-search";
-import MailList from "@/components/mailbox/default/mail-list";
 import {
 	fetchMailbox,
-	fetchMailboxMessages,
 	fetchMailboxThreads,
 } from "@/lib/actions/mailbox";
 import { getPublicEnv } from "@schema";
 import ThreadList from "@/components/mailbox/default/thread-list";
+import MailPagination from "@/components/mailbox/default/mail-pagination";
 
 async function Page({
 	params,
+    searchParams
 }: {
 	params: { identityPublicId: string; mailboxSlug?: string };
+    searchParams: {page?: string}
 }) {
+    const {page} = await searchParams
 	const { identityPublicId, mailboxSlug } = await params;
-	const { activeMailbox } = await fetchMailbox(identityPublicId, mailboxSlug);
-	const { threads } = await fetchMailboxThreads(activeMailbox.id);
+	const { activeMailbox, count } = await fetchMailbox(identityPublicId, mailboxSlug);
+	const { threads } = await fetchMailboxThreads(activeMailbox.id, Number(page));
 	const publicConfig = getPublicEnv();
 
 	return (
 		<>
-			<div className="flex flex-1 flex-col gap-4 p-4">
-				{/*<MailList*/}
-				{/*	messages={messages}*/}
-				{/*	publicConfig={publicConfig}*/}
-				{/*	activeMailbox={activeMailbox}*/}
-				{/*	identityPublicId={identityPublicId}*/}
-				{/*/>*/}
+			<div className="flex flex-1 flex-col gap-4 p-4 mb-12">
 				<ThreadList
 					threads={threads}
 					publicConfig={publicConfig}
 					activeMailbox={activeMailbox}
 					identityPublicId={identityPublicId}
 				/>
+
+                <MailPagination count={count} mailboxSlug={activeMailbox.slug} identityPublicId={identityPublicId} page={Number(page)} />
 
 				{/*{Array.from({ length: 24 }).map((_, index) => (*/}
 				{/*	<div*/}

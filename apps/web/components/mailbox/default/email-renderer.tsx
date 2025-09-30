@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useState } from "react";
-import { MessageAttachmentEntity, MessageEntity } from "@db";
+import {MessageAttachmentEntity, MessageEntity} from "@db";
+import {fromAddress, fromName} from "@schema";
 import slugify from "@sindresorhus/slugify";
 import { ChevronDown, EllipsisVertical, Reply, Star } from "lucide-react";
 import { Temporal } from "@js-temporal/polyfill";
@@ -9,7 +10,6 @@ import { ActionIcon } from "@mantine/core";
 import { EmailEditorHandle } from "@/components/mailbox/default/editor/email-editor";
 import EditorAttachmentItem from "@/components/mailbox/default/editor/editor-attachment-item";
 import { PublicConfig } from "@schema";
-import { fromAddress, fromName } from "@/lib/utils";
 const EmailEditor = dynamic(
 	() => import("@/components/mailbox/default/editor/email-editor"),
 	{

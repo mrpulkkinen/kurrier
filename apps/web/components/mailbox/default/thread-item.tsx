@@ -7,7 +7,7 @@ import EmailRenderer from "@/components/mailbox/default/email-renderer";
 import { Avatar } from "@mantine/core";
 import { fetchMessageAttachments } from "@/lib/actions/mailbox";
 import { getPublicEnv } from "@schema";
-import { fromAddress, fromName } from "@/lib/utils";
+import { fromAddress, fromName } from "@schema";
 
 export default async function ThreadItem({
 	message,
