@@ -9,9 +9,9 @@ import {
 	StarOff,
 	Trash2,
 } from "lucide-react";
-import { MailboxEntity, MessageEntity } from "@db";
+import {MailboxEntity, MessageEntity} from "@db";
+import {fromAddress, fromName} from "@schema";
 import { useRouter } from "next/navigation";
-import { fromAddress, fromName } from "@/lib/utils";
 
 function MailListItem({
 	message,

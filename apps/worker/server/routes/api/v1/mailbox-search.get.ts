@@ -1,13 +1,14 @@
 import { eventHandler } from "h3";
-import { db, providers } from "@db";
+import {createClient} from "../../../../server/utils/create-client";
 
-// Learn more: https://nitro.build/guide/routing
-export default eventHandler((event) => {
-    db.select()
-        .from(providers)
-        .then((res) => {
-            console.log("Providers from @db:", res);
-        });
+export default eventHandler(async (event) => {
+    const supabase = await createClient(event)
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) {
+        event.node.res.statusCode = 401
+        return 'Unauthorized'
+    }
+
     return `
       <meta charset="utf-8">
       <h1>This is your brand new Nitro project 🚀 </h1>

@@ -391,10 +391,6 @@ export async function parseAndStoreEmail(rawEmail: string, opts: {
         flagged: false,
         draft: false,
         html: parsed.html || "",
-        snippet: (parsed.text || parsed.html || "")
-            .toString()
-            .replace(/\s+/g, " ")
-            .slice(0, 100)
     } as MessageCreate | ParsedMail;
 
     const messagePayload = MessageInsertSchema.parse(decoratedParsed);

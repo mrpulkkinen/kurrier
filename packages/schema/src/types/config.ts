@@ -20,6 +20,10 @@ export const ZServerConfig = z.object({
     REDIS_PASSWORD: z.string("REDIS_PASSWORD must be present",),
     REDIS_HOST: z.string("REDIS_HOST must be present",),
     REDIS_PORT: z.string("REDIS_PORT must be present",),
+    TYPESENSE_API_KEY: z.string("TYPESENSE_API_KEY must be present",),
+    TYPESENSE_PORT: z.string("TYPESENSE_PORT must be present",),
+    TYPESENSE_PROTOCOL: z.string("TYPESENSE_PROTOCOL must be present",),
+    TYPESENSE_HOST: z.string("TYPESENSE_HOST must be present",),
 });
 
 /** Safe to expose to the browser */
