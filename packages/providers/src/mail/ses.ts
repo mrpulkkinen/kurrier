@@ -341,7 +341,7 @@ export class SesMailer implements Mailer {
 					Protocol: webhookUrl.startsWith("https") ? "https" : "http",
 					Endpoint: webhookUrl,
 					Attributes: {
-						RawMessageDelivery: "true", // get raw JSON
+						RawMessageDelivery: "false", // get raw JSON
 						// Optional filter policy to only receive SES inbound notifications you emit
 						// FilterPolicy: JSON.stringify({ source: ["ses"] })
 					},

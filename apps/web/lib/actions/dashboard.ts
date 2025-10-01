@@ -727,6 +727,52 @@ export type FetchUserIdentitiesResult = Awaited<
 	ReturnType<typeof fetchUserIdentities>
 >;
 
+export const disconnectProviderAccount = async (
+    providerType: Providers,
+    providerSecret: FetchDecryptedSecretsResultRow,
+) => {
+    return handleAction(async () => {
+        let res = { ok: false, message: "Not implemented" } as VerifyResult;
+        if (providerType === "ses") {
+            const mailer = createMailer("ses", providerSecret.parsedSecret);
+            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+            // console.log("mailer", mailer)
+            // res = await mailer.verify(String(providerSecret?.metaId), {
+            //     WEB_URL: WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL,
+            // });
+
+            // const data = providerSecret.parsedSecret;
+            // data.verified = res.ok;
+            //
+            // const session = await currentSession();
+            // await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+            //     value: JSON.stringify(data),
+            // });
+            //
+            // if (res.ok) {
+            //     const rls = await rlsClient();
+            //     await rls((tx) =>
+            //         tx
+            //             .update(providers)
+            //             .set({
+            //                 metaData: {
+            //                     ...(providerSecret?.provider?.metaData ?? {}),
+            //                     ...{ verification: res.meta },
+            //                 },
+            //             })
+            //             .where(
+            //                 eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+            //             ),
+            //     );
+            // }
+        }
+
+        revalidatePath(DASHBOARD_PATH);
+
+        return { success: true, data: res };
+    });
+};
+
 // export const rlsClient = async () => {
 // 	const session = await currentSession();
 // 	const { rls } = await createDrizzleSupabaseClient(session);
