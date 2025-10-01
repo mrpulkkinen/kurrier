@@ -727,14 +727,19 @@ export type FetchUserIdentitiesResult = Awaited<
 	ReturnType<typeof fetchUserIdentities>
 >;
 
-// export const rlsClient = async () => {
-// 	const session = await currentSession();
-// 	const { rls } = await createDrizzleSupabaseClient(session);
-// 	return rls;
-// };
+// export const disconnectProviderAccount = async (
+//     providerType: Providers,
+//     providerSecret: FetchDecryptedSecretsResultRow,
+// ) => {
+//     return handleAction(async () => {
+//         let res = { ok: false, message: "Not implemented" } as VerifyResult;
+//         if (providerType === "ses") {
+//             const mailer = createMailer("ses", providerSecret.parsedSecret);
+//             const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+//         }
 //
-// export const adminClient = async () => {
-// 	const session = await currentSession();
-// 	const { admin } = await createDrizzleSupabaseClient(session);
-// 	return admin;
+//         revalidatePath(DASHBOARD_PATH);
+//
+//         return { success: true, data: res };
+//     });
 // };
