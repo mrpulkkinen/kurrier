@@ -13,7 +13,14 @@
 	"author": "Krishna Rokhale",
 	"license": "ISC",
 	"dependencies": {
+		"@sendgrid/client": "^8.1.6",
+		"@sendgrid/eventwebhook": "^8.0.0",
+		"@sendgrid/helpers": "^8.0.0",
+		"@sendgrid/inbound-mail-parser": "^8.0.0",
+		"@sendgrid/mail": "^8.1.6",
 		"imapflow": "^1.0.196",
-		"nodemailer": "^7.0.6"
+		"mailgun.js": "^12.1.0",
+		"nodemailer": "^7.0.6",
+		"postmark": "^4.0.5"
 	}
 }

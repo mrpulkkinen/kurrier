@@ -331,11 +331,17 @@ export async function initializeDomainIdentity(
 		const decrypted = secret.parsedSecret;
 		const mailer = createMailer(providerIdentifier, decrypted);
 
-		const identity = await mailer.addDomain(
-			String(data?.value),
-			String(data?.mailFromSubdomain ?? "").trim() || undefined,
-			String(data?.incomingDomain) === "true",
-		);
+        const opts = {} as Record<any, any>
+        opts.incoming = String(data?.incomingDomain) === "true"
+        if (providerIdentifier === "ses") {
+            opts.mailFrom = String(data?.mailFromSubdomain ?? "").trim() || undefined
+        } else if (providerIdentifier === "sendgrid") {
+            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+            const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL
+            opts.webHookUrl = `${url}/api/v1/hooks/sendgrid/inbound`
+        }
+		const identity = await mailer.addDomain(String(data?.value), opts);
+
 
 		return {
 			success: true,
@@ -389,9 +395,24 @@ export async function verifyDomainIdentity(
 			providerAccount?.provider?.type as Providers,
 			decrypted,
 		);
-		const response = await mailer.verifyDomain(
-			userDomainIdentity.identities.value,
-		);
+
+
+        const opts = {} as Record<any, any>
+
+        if (providerAccount?.provider?.type !== "ses"){
+            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+            const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL
+            if (providerAccount?.provider?.type === "mailgun"){
+                opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/mime`
+            } else {
+                opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/inbound`
+            }
+        }
+
+		const response = await mailer.verifyDomain(userDomainIdentity.identities.value, opts);
+
+
+
 		const rls = await rlsClient();
 		await rls((tx) =>
 			tx
@@ -423,14 +444,16 @@ const initializeEmailIdentity = async (
 		const decrypted = secret.parsedSecret;
 		const mailer = createMailer(secret?.provider?.type as Providers, decrypted);
 		const provider = await getProviderById(String(data?.providerId));
-		// const baseMetaData = {
-		//     identityId: id
-		// }
-		const response = await mailer.addEmail(
-			String(data?.value),
-			`inbound/${provider.ownerId}/${provider.id}/${id}`,
-			provider?.metaData?.verification ? provider?.metaData?.verification : {},
-		);
+
+        let response = {} as any
+        if (provider.type === "ses") {
+            response = await mailer.addEmail(
+                String(data?.value),
+                `inbound/${provider.ownerId}/${provider.id}/${id}`,
+                provider?.metaData?.verification ? provider?.metaData?.verification : {},
+            );
+        }
+
 		return {
 			success: true,
 			data: { response, parsedVaultValues: decrypted, secret },
@@ -464,10 +487,6 @@ export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
 	if (emailIdentity.kind !== "email") return;
 
     if (emailIdentity.smtpAccountId) return
-
-    // console.log("emailIdentity", emailIdentity)
-    // const mailboxTemplates = emailIdentity.smtpAccountId ? SMTP_MAILBOXES : SYSTEM_MAILBOXES;
-
 	// insert one row per mailbox kind
 	const rows = SYSTEM_MAILBOXES.map((m) => ({
 		ownerId: emailIdentity.ownerId,
@@ -494,8 +513,6 @@ export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
 	//     }))
 	// );
 
-	console.log("rows", rows);
-
 	return rows;
 };
 
@@ -517,6 +534,7 @@ export async function addNewEmailIdentity(
 			);
 			await initializeMailboxes(identity);
 		} else {
+
 			data.domainIdentityId = data.domain;
 
 			const [domainIdentity] = await rls((tx) =>
@@ -581,6 +599,7 @@ export const testSendingEmail = async (
 			);
 			await mailer.sendTestEmail(userIdentity.identities.value, {
 				subject: "Test email from Kurrier",
+                from: userIdentity.identities.value,
 				body: "This is a test email from your configured account in Kurrier.",
 			});
 			return { success: true, message: "Test email sent successfully." };
@@ -644,13 +663,7 @@ export const deleteEmailIdentity = async (
 ) => {
 	return handleAction(async () => {
 		const rls = await rlsClient();
-		if (userIdentity.smtp_accounts) {
-			await rls((tx) =>
-				tx
-					.delete(identities)
-					.where(eq(identities.id, String(userIdentity.identities.id))),
-			);
-		} else {
+		if (!userIdentity.smtp_accounts) {
 			const [secret] = await fetchDecryptedSecrets({
 				linkTable: providerSecrets,
 				foreignCol: providerSecrets.providerId,
@@ -658,20 +671,20 @@ export const deleteEmailIdentity = async (
 				parentId: String(userIdentity?.identities.providerId),
 			});
 			const providerType = userIdentity?.providers?.type as Providers;
-			// const mailer = createMailer(providerType, parseSecret(secret));
 			const mailer = createMailer(providerType, secret.parsedSecret);
 			if (userIdentity?.providers?.type === "ses") {
-				await mailer.removeEmail(
-					userIdentity?.identities?.metaData?.ruleSetName,
-					userIdentity?.identities?.metaData?.ruleName,
-				);
+				await mailer.removeEmail(userIdentity?.identities?.value, {
+                        ruleSetName: userIdentity?.identities?.metaData?.ruleSetName,
+                        ruleName: userIdentity?.identities?.metaData?.ruleName
+                });
 			}
-			await rls((tx) =>
-				tx
-					.delete(identities)
-					.where(eq(identities.id, String(userIdentity.identities.id))),
-			);
 		}
+
+        await rls((tx) =>
+            tx
+                .delete(identities)
+                .where(eq(identities.id, String(userIdentity.identities.id))),
+        );
 
 		revalidatePath(DASHBOARD_PATH);
 		return { success: true, message: "Deleted email identity" };
@@ -715,7 +728,89 @@ export const verifyProviderAccount = async (
 						),
 				);
 			}
-		}
+		} else if (providerType === "mailgun") {
+            const mailer = createMailer(providerType, providerSecret.parsedSecret);
+            res = await mailer.verify(String(providerSecret?.metaId), {});
+
+            const data = providerSecret.parsedSecret;
+            data.verified = res.ok;
+
+            const session = await currentSession();
+            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+                value: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                const rls = await rlsClient();
+                await rls((tx) =>
+                    tx
+                        .update(providers)
+                        .set({
+                            metaData: {
+                                ...(providerSecret?.provider?.metaData ?? {}),
+                                ...{ verification: res.meta },
+                            },
+                        })
+                        .where(
+                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+                        ),
+                );
+            }
+		} else if (providerType === "postmark") {
+            const mailer = createMailer(providerType, providerSecret.parsedSecret);
+            res = await mailer.verify(String(providerSecret?.metaId), {});
+            const data = providerSecret.parsedSecret;
+            data.verified = res.ok;
+
+            const session = await currentSession();
+            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+                value: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                const rls = await rlsClient();
+                await rls((tx) =>
+                    tx
+                        .update(providers)
+                        .set({
+                            metaData: {
+                                ...(providerSecret?.provider?.metaData ?? {}),
+                                ...{ verification: res.meta },
+                            },
+                        })
+                        .where(
+                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+                        ),
+                );
+            }
+		} else if (providerType === "sendgrid") {
+            const mailer = createMailer(providerType, providerSecret.parsedSecret);
+            res = await mailer.verify(String(providerSecret?.metaId), {});
+            const data = providerSecret.parsedSecret;
+            data.verified = res.ok;
+
+            const session = await currentSession();
+            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+                value: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+                const rls = await rlsClient();
+                await rls((tx) =>
+                    tx
+                        .update(providers)
+                        .set({
+                            metaData: {
+                                ...(providerSecret?.provider?.metaData ?? {}),
+                                ...{ verification: res.meta },
+                            },
+                        })
+                        .where(
+                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+                        ),
+                );
+            }
+        }
 
 		revalidatePath(DASHBOARD_PATH);
 

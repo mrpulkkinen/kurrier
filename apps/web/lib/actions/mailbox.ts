@@ -111,7 +111,6 @@ export const fetchMailbox = cache(
         const [messagesCount] = await rls((tx) =>
             tx.select({ count: count() }).from(messages).where(eq(messages.mailboxId, activeMailbox.id))
         );
-        console.log("messagesCount", messagesCount)
 
         return { activeMailbox, mailboxList, identity, count: Number(messagesCount.count)};
 	},
@@ -557,6 +556,7 @@ export async function sendMail(
 	});
 
 
+
 	if (mailerResponse.success) {
         const parsedMessage = MessageInsertSchema.parse({
             ...newMessageBody,
@@ -577,7 +577,9 @@ export async function sendMail(
 				}),
 			);
 		}
-	}
+	} else if (mailerResponse.error){
+        return { error: `Failed to send email: ${mailerResponse.error}`, success: false };
+    }
 
 	return { success: true };
 }
@@ -587,7 +589,6 @@ export const deltaFetch = async ({identityId}: {identityId: string}) => {
     // await deltaQueue.add("delta-fetch", { identityId }, { jobId: `delta-fetch-${identityId}` });
     const job = await smtpQueue.add("delta-fetch", { identityId });
     const result = await job.waitUntilFinished(smtpEvents);
-    console.log("Worker result:", result);
 };
 
 

@@ -67,43 +67,38 @@ export const RawSesConfigSchema = z
 
 export type SesConfig = z.infer<typeof RawSesConfigSchema>;
 
-// export const SmtpVerifySchema = z.object({
-//     host: z.string(),
-//     port: z.coerce.number(),
-//     secure: z.enum(["true", "false"]).transform(val => val === "true").optional(), // true => 465 (implicit TLS)
-//     auth: z.object({
-//         user: z.string(),
-//         pass: z.string(),
-//     }),
-//     pool: z.enum(["true", "false"]).transform(val => val === "true").optional(),
-//     imap: z.object({
-//         host: z.string(),
-//         port: z.coerce.number(),
-//         user: z.string(),
-//         pass: z.string(),
-//         secure: z.enum(["true", "false"]).transform(val => val === "true"),
-//     }).optional(),
-// });
-// export type SmtpVerifyInput = z.infer<typeof SmtpVerifySchema>;
+export const RawSendgridConfigSchema = z
+    .object({
+        SENDGRID_API_KEY: z.string(),
+    })
+    .transform((r) => ({
+        sendgridApiKey: r.SENDGRID_API_KEY
+    }));
 
-// export type MailAddress = string | { name?: string; address: string };
-//
-// export type Mail = {
-//     to: MailAddress | MailAddress[];
-//     from: MailAddress;
-//     subject: string;
-//     text?: string;
-//     html?: string;
-//     headers?: Record<string, string>;
-// };
+export type SendgridConfig = z.infer<typeof RawSendgridConfigSchema>;
 
-// export type SendResult = {
-//     id?: string;
-//     accepted?: string[];
-//     rejected?: string[];
-//     provider?: Providers;
-//     meta?: Record<string, unknown>;
-// };
+export const RawMailgunConfigSchema = z
+    .object({
+        MAILGUN_API_KEY: z.string(),
+    })
+    .transform((r) => ({
+        mailgunApiKey: r.MAILGUN_API_KEY
+    }));
+
+export type MailgunConfig = z.infer<typeof RawMailgunConfigSchema>;
+
+export const RawPostmarkConfigSchema = z
+    .object({
+        POSTMARK_SERVER_TOKEN: z.string(),
+        POSTMARK_ACCOUNT_TOKEN: z.string(),
+    })
+    .transform((r) => ({
+        postmarkServerToken: r.POSTMARK_SERVER_TOKEN,
+        postmarkAccountToken: r.POSTMARK_ACCOUNT_TOKEN
+    }));
+
+export type PostmarkConfig = z.infer<typeof RawPostmarkConfigSchema>;
+
 
 export type DnsType = "TXT" | "CNAME" | "MX";
 export type DnsRecord = {
@@ -134,7 +129,7 @@ export interface Mailer {
 	verify(id: string, metaData?: Record<any, any>): Promise<VerifyResult>;
 	sendTestEmail(
 		to: string,
-		opts?: { subject?: string; body?: string },
+		opts?: { subject?: string; body?: string, from?: string },
 	): Promise<boolean>;
 	sendEmail(
 		to: string[],
@@ -147,11 +142,10 @@ export interface Mailer {
 			references: string[];
 			attachments?: { name: string; content: Blob; contentType: string }[];
 		},
-	): Promise<{ success: boolean; MessageId?: string }>;
+	): Promise<{ success: boolean; MessageId?: string, error?: string }>;
 	addDomain(
 		domain: string,
-		mailFrom?: string,
-		incoming?: boolean,
+        opts: Record<any, any>
 	): Promise<DomainIdentity>;
 	addEmail(
 		email: string,
@@ -159,11 +153,13 @@ export interface Mailer {
 		metaData?: Record<any, any>,
 	): Promise<EmailIdentity>;
 	removeEmail(
-		ruleSetName: string,
-		ruleName: string,
+        email: string,
+        opts: Record<any, any>
+		// ruleSetName: string,
+		// ruleName: string,
 	): Promise<{ removed: boolean }>;
 	removeDomain(domain: string): Promise<DomainIdentity>;
-	verifyDomain(domain: string): Promise<DomainIdentity>;
+	verifyDomain(domain: string, opts?: Record<any, any>): Promise<DomainIdentity>;
 	// send?(mail: Mail): Promise<SendResult>;
 	// close?(): Promise<void>;
 }
