@@ -217,14 +217,14 @@ export class SesMailer implements Mailer {
 		return { name: desired, usedExistingActive: false };
 	}
 
-	async removeEmail(ruleSetName: string, ruleName: string) {
+	async removeEmail(email: string, opts: Record<any, any>) {
 		const ses = new SES({ region: this.cfg.region, credentials: this.cfg });
 
 		try {
 			await ses.send(
 				new DeleteReceiptRuleCommand({
-					RuleSetName: ruleSetName,
-					RuleName: ruleName,
+					RuleSetName: opts.ruleSetName,
+					RuleName: opts.ruleName,
 				}),
 			);
 			return { removed: true };
@@ -552,9 +552,10 @@ export class SesMailer implements Mailer {
 
 	async addDomain(
 		domain: string,
-		mailFrom: string,
-		incoming?: boolean,
+		opts: Record<any, any>
 	): Promise<DomainIdentity> {
+
+        const { mailFrom, incoming } = opts;
 		// 1) Create/enable identity with Easy DKIM
 		try {
 			await this.v2.send(

@@ -44,19 +44,19 @@ export const PROVIDERS: ProviderSpec[] = [
 		key: "sendgrid",
 		name: ProviderLabels.sendgrid,
 		docsUrl: "https://docs.sendgrid.com/",
-		requiredEnv: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL"],
+		requiredEnv: ["SENDGRID_API_KEY"],
 	},
 	{
 		key: "mailgun",
 		name: ProviderLabels.mailgun,
 		docsUrl: "https://documentation.mailgun.com/",
-		requiredEnv: ["MAILGUN_API_KEY", "MAILGUN_DOMAIN", "MAILGUN_FROM_EMAIL"],
+		requiredEnv: ["MAILGUN_API_KEY"],
 	},
 	{
 		key: "postmark",
 		name: ProviderLabels.postmark,
 		docsUrl: "https://postmarkapp.com/developer",
-		requiredEnv: ["POSTMARK_SERVER_TOKEN", "POSTMARK_FROM_EMAIL"],
+		requiredEnv: ["POSTMARK_SERVER_TOKEN", "POSTMARK_ACCOUNT_TOKEN"],
 	},
 ];
 

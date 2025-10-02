@@ -8,10 +8,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {Edit, ExternalLink, Globe, Play, Trash, Unplug} from "lucide-react";
-// import { Button } from "@/components/ui/button";
 import * as React from "react";
 import {
-    disconnectProviderAccount,
     FetchDecryptedSecretsResult,
     SyncProvidersRow,
     verifyProviderAccount,
@@ -25,6 +23,8 @@ import { VerifyResult } from "@providers";
 import { toast } from "sonner";
 import { parseSecret } from "@/lib/utils";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
+import {Toaster} from "@/components/ui/sonner";
+import {useAppearance} from "@/components/providers/appearance-provider";
 
 export default function ProviderCard({
 	spec,
@@ -99,11 +99,6 @@ export default function ProviderCard({
 						<ProviderEditForm
 							spec={spec}
 							onCompleted={() => modals.close(openModalId)}
-							// onCompleted={(res: VerifyResult) => {
-							//     console.log("res", res)
-							//     // initTestAccount(res)
-							//     modals.close(openModalId)
-							// }}
 							providerId={userProvider.id}
 							decryptedSecret={decryptedSecret}
 						/>
@@ -117,7 +112,6 @@ export default function ProviderCard({
 	const initVerifyAccount = async () => {
 		setTesting(true);
 		try {
-			// const res = await testProviderAccount(userProvider.type, decryptedSecret);
 			const { data: res } = await verifyProviderAccount(
 				userProvider.type,
 				decryptedSecret,
@@ -160,7 +154,10 @@ export default function ProviderCard({
 		}
 	};
 
-	return (
+    const {mode} = useAppearance()
+
+	return <div>
+        <Toaster theme={mode} expand={true} />
 		<Card className="shadow-none relative">
 			<CardHeader className="gap-3">
 				<div className="flex flex-col gap-3">
@@ -236,5 +233,5 @@ export default function ProviderCard({
 			{/*	</div>*/}
 			{/*</CardContent>*/}
 		</Card>
-	);
+    </div>
 }
