@@ -15,9 +15,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PublicConfig } from "@schema";
 import {
-    deltaFetch,
-    FetchMailboxThreadsResult,
-    revalidateMailbox,
+	deltaFetch,
+	FetchMailboxThreadsResult,
+	revalidateMailbox,
 } from "@/lib/actions/mailbox";
 import MailListHeader from "@/components/mailbox/default/mail-list-header";
 import ThreadListItem from "@/components/mailbox/default/thread-list-item";
@@ -33,7 +33,6 @@ type MailItem = {
 	unread?: boolean;
 	starred?: boolean;
 };
-
 
 type MailListProps = {
 	items?: MailItem[];
@@ -74,32 +73,31 @@ export default function ThreadList({
 	const toggleStar = (id: string) =>
 		setStarred((prev) => ({ ...prev, [id]: !prev[id] }));
 
-
 	// useEffect(() => {
-    //     deltaFetch({identityId: activeMailbox.identityId})
+	//     deltaFetch({identityId: activeMailbox.identityId})
 	// }, []);
 
 	// const [activeMessage, setActiveMessage] = useState<string | null>(null);
 
-    const triggerSync = async () => {
-        const supabase = createClient(publicConfig);
+	const triggerSync = async () => {
+		const supabase = createClient(publicConfig);
 
-        const testChannel = supabase.channel(`smtp-worker`);
-        testChannel.subscribe((status) => {
-            if (status !== "SUBSCRIBED") {
-                return null;
-            }
-            testChannel.send({
-                type: "broadcast",
-                event: "delta",
-                payload: { identityId: activeMailbox.identityId },
-            });
-            testChannel.unsubscribe();
+		const testChannel = supabase.channel(`smtp-worker`);
+		testChannel.subscribe((status) => {
+			if (status !== "SUBSCRIBED") {
+				return null;
+			}
+			testChannel.send({
+				type: "broadcast",
+				event: "delta",
+				payload: { identityId: activeMailbox.identityId },
+			});
+			testChannel.unsubscribe();
 
-            return;
-        });
-        await revalidateMailbox("/mail");
-    };
+			return;
+		});
+		await revalidateMailbox("/mail");
+	};
 
 	return (
 		<>

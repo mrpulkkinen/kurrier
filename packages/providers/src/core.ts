@@ -68,37 +68,36 @@ export const RawSesConfigSchema = z
 export type SesConfig = z.infer<typeof RawSesConfigSchema>;
 
 export const RawSendgridConfigSchema = z
-    .object({
-        SENDGRID_API_KEY: z.string(),
-    })
-    .transform((r) => ({
-        sendgridApiKey: r.SENDGRID_API_KEY
-    }));
+	.object({
+		SENDGRID_API_KEY: z.string(),
+	})
+	.transform((r) => ({
+		sendgridApiKey: r.SENDGRID_API_KEY,
+	}));
 
 export type SendgridConfig = z.infer<typeof RawSendgridConfigSchema>;
 
 export const RawMailgunConfigSchema = z
-    .object({
-        MAILGUN_API_KEY: z.string(),
-    })
-    .transform((r) => ({
-        mailgunApiKey: r.MAILGUN_API_KEY
-    }));
+	.object({
+		MAILGUN_API_KEY: z.string(),
+	})
+	.transform((r) => ({
+		mailgunApiKey: r.MAILGUN_API_KEY,
+	}));
 
 export type MailgunConfig = z.infer<typeof RawMailgunConfigSchema>;
 
 export const RawPostmarkConfigSchema = z
-    .object({
-        POSTMARK_SERVER_TOKEN: z.string(),
-        POSTMARK_ACCOUNT_TOKEN: z.string(),
-    })
-    .transform((r) => ({
-        postmarkServerToken: r.POSTMARK_SERVER_TOKEN,
-        postmarkAccountToken: r.POSTMARK_ACCOUNT_TOKEN
-    }));
+	.object({
+		POSTMARK_SERVER_TOKEN: z.string(),
+		POSTMARK_ACCOUNT_TOKEN: z.string(),
+	})
+	.transform((r) => ({
+		postmarkServerToken: r.POSTMARK_SERVER_TOKEN,
+		postmarkAccountToken: r.POSTMARK_ACCOUNT_TOKEN,
+	}));
 
 export type PostmarkConfig = z.infer<typeof RawPostmarkConfigSchema>;
-
 
 export type DnsType = "TXT" | "CNAME" | "MX";
 export type DnsRecord = {
@@ -129,7 +128,7 @@ export interface Mailer {
 	verify(id: string, metaData?: Record<any, any>): Promise<VerifyResult>;
 	sendTestEmail(
 		to: string,
-		opts?: { subject?: string; body?: string, from?: string },
+		opts?: { subject?: string; body?: string; from?: string },
 	): Promise<boolean>;
 	sendEmail(
 		to: string[],
@@ -142,24 +141,24 @@ export interface Mailer {
 			references: string[];
 			attachments?: { name: string; content: Blob; contentType: string }[];
 		},
-	): Promise<{ success: boolean; MessageId?: string, error?: string }>;
-	addDomain(
-		domain: string,
-        opts: Record<any, any>
-	): Promise<DomainIdentity>;
+	): Promise<{ success: boolean; MessageId?: string; error?: string }>;
+	addDomain(domain: string, opts: Record<any, any>): Promise<DomainIdentity>;
 	addEmail(
 		email: string,
 		objectKeyPrefix: string,
 		metaData?: Record<any, any>,
 	): Promise<EmailIdentity>;
 	removeEmail(
-        email: string,
-        opts: Record<any, any>
+		email: string,
+		opts: Record<any, any>,
 		// ruleSetName: string,
 		// ruleName: string,
 	): Promise<{ removed: boolean }>;
 	removeDomain(domain: string): Promise<DomainIdentity>;
-	verifyDomain(domain: string, opts?: Record<any, any>): Promise<DomainIdentity>;
+	verifyDomain(
+		domain: string,
+		opts?: Record<any, any>,
+	): Promise<DomainIdentity>;
 	// send?(mail: Mail): Promise<SendResult>;
 	// close?(): Promise<void>;
 }

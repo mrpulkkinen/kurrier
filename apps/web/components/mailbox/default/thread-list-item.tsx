@@ -40,7 +40,7 @@ export default function ThreadListItem({
 	// 	.toString()
 	// 	.replace(/\s+/g, " ")
 	// 	.slice(0, 100);
-    const snippet = first.snippet
+	const snippet = first.snippet;
 
 	const unread = messages.some((m) => !m.seen); // ← correct polarity
 	const hasAttachments = messages.some((m) => !!m.hasAttachments);
@@ -53,7 +53,9 @@ export default function ThreadListItem({
 
 	const openThread = () => {
 		// router.push(`/mail/${identityPublicId}/${activeMailbox.slug}/${last.id}`);
-		router.push(`/mail/${identityPublicId}/${activeMailbox.slug}/messages/${thread.id}`);
+		router.push(
+			`/mail/${identityPublicId}/${activeMailbox.slug}/messages/${thread.id}`,
+		);
 	};
 
 	// Width reserved on the right so text never collides with the overlay actions

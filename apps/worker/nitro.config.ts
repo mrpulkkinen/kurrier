@@ -3,7 +3,7 @@ import { defineNitroConfig } from "nitropack/config";
 // https://nitro.build/config
 export default defineNitroConfig({
 	compatibilityDate: "latest",
-    // preset: 'node-server',
+	// preset: 'node-server',
 	srcDir: "server",
 	imports: false,
 	alias: {

@@ -60,11 +60,11 @@ function AddDomainIdentityForm({
 			wrapperClasses: "hidden",
 			props: { hidden: true, defaultValue: "domain" },
 		},
-        {
-            name: "incomingDomain",
-            wrapperClasses: "hidden",
-            props: { hidden: true, defaultValue: "true" },
-        },
+		{
+			name: "incomingDomain",
+			wrapperClasses: "hidden",
+			props: { hidden: true, defaultValue: "true" },
+		},
 		...(provider?.provider?.type === "ses"
 			? [
 					{

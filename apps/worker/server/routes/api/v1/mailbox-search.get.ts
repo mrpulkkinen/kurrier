@@ -1,15 +1,15 @@
 import { eventHandler } from "h3";
-import {createClient} from "../../../../server/utils/create-client";
+import { createClient } from "../../../../server/utils/create-client";
 
 export default eventHandler(async (event) => {
-    const supabase = await createClient(event)
-    const { data, error } = await supabase.auth.getUser()
-    if (error || !data.user) {
-        event.node.res.statusCode = 401
-        return 'Unauthorized'
-    }
+	const supabase = await createClient(event);
+	const { data, error } = await supabase.auth.getUser();
+	if (error || !data.user) {
+		event.node.res.statusCode = 401;
+		return "Unauthorized";
+	}
 
-    return `
+	return `
       <meta charset="utf-8">
       <h1>This is your brand new Nitro project 🚀 </h1>
       <p>Get started by editing the <code>server/routes/index.ts</code> file.</p>

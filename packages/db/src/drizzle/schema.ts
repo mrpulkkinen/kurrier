@@ -1,30 +1,32 @@
 // @ts-nocheck
 import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    pgPolicy,
-    pgEnum,
-    uniqueIndex,
-    boolean,
-    jsonb,
-    integer,
-    index,
-    pgSchema,
-    bigint, numeric
+	pgTable,
+	uuid,
+	text,
+	timestamp,
+	pgPolicy,
+	pgEnum,
+	uniqueIndex,
+	boolean,
+	jsonb,
+	integer,
+	index,
+	pgSchema,
+	bigint,
+	numeric,
 } from "drizzle-orm/pg-core";
 import { users } from "./supabase-schema";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 import { sql } from "drizzle-orm";
 import {
-    AddressObjectJSON,
-    identityStatusList,
-    identityTypesList,
-    mailboxKindsList, mailboxSyncPhase,
-    messagePriorityList,
-    messageStatesList,
-    providersList,
+	AddressObjectJSON,
+	identityStatusList,
+	identityTypesList,
+	mailboxKindsList,
+	mailboxSyncPhase,
+	messagePriorityList,
+	messageStatesList,
+	providersList,
 } from "@schema";
 import { DnsRecord } from "@providers";
 import { nanoid } from "nanoid";
@@ -39,7 +41,10 @@ export const MessagePriorityEnum = pgEnum(
 	"message_priority",
 	messagePriorityList,
 );
-export const mailboxSyncPhaseEnum = pgEnum("mailbox_sync_phase", mailboxSyncPhase);
+export const mailboxSyncPhaseEnum = pgEnum(
+	"mailbox_sync_phase",
+	mailboxSyncPhase,
+);
 
 export const secretsMeta = pgTable(
 	"secrets_meta",
@@ -381,7 +386,6 @@ export const identities = pgTable(
 	],
 ).enableRLS();
 
-
 export const mailboxes = pgTable(
 	"mailboxes",
 	{
@@ -400,7 +404,7 @@ export const mailboxes = pgTable(
 		name: text("name"),
 		slug: text("slug"),
 		isDefault: boolean("is_default").notNull().default(false),
-        metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
+		metaData: jsonb("meta").$type<Record<string, any> | null>().default(null),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -441,45 +445,50 @@ export const mailboxes = pgTable(
 	],
 ).enableRLS();
 
-
 export const mailboxSync = pgTable(
-    "mailbox_sync",
-    {
-        id: uuid("id").defaultRandom().primaryKey(),
+	"mailbox_sync",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
 
-        identityId: uuid("identity_id")
-            .references(() => identities.id, { onDelete: "cascade" })
-            .notNull(),
-        mailboxId: uuid("mailbox_id")
-            .references(() => mailboxes.id, { onDelete: "cascade" })
-            .notNull(),
+		identityId: uuid("identity_id")
+			.references(() => identities.id, { onDelete: "cascade" })
+			.notNull(),
+		mailboxId: uuid("mailbox_id")
+			.references(() => mailboxes.id, { onDelete: "cascade" })
+			.notNull(),
 
-        // IMAP cursors / invariants
-        uidValidity: bigint("uid_validity", { mode: "bigint" }).notNull(),
-        lastSeenUid: bigint("last_seen_uid", { mode: "number" }).notNull().default(0),
-        backfillCursorUid: bigint("backfill_cursor_uid", { mode: "number" }).notNull().default(0),
+		// IMAP cursors / invariants
+		uidValidity: bigint("uid_validity", { mode: "bigint" }).notNull(),
+		lastSeenUid: bigint("last_seen_uid", { mode: "number" })
+			.notNull()
+			.default(0),
+		backfillCursorUid: bigint("backfill_cursor_uid", { mode: "number" })
+			.notNull()
+			.default(0),
 
-        // CONDSTORE/QRESYNC: allow very large modseq as exact integer
-        highestModseq: numeric("highest_modseq", { precision: 20, scale: 0 }),
+		// CONDSTORE/QRESYNC: allow very large modseq as exact integer
+		highestModseq: numeric("highest_modseq", { precision: 20, scale: 0 }),
 
-        // Worker state
-        phase: mailboxSyncPhaseEnum("phase").notNull().default("BOOTSTRAP"),
-        syncedAt: timestamp("synced_at", { withTimezone: true }),
-        error: text("error"),
+		// Worker state
+		phase: mailboxSyncPhaseEnum("phase").notNull().default("BOOTSTRAP"),
+		syncedAt: timestamp("synced_at", { withTimezone: true }),
+		error: text("error"),
 
-        createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-        updatedAt: timestamp("updated_at", { withTimezone: true })
-            .defaultNow()
-            // keep updatedAt fresh on UPDATEs
-            .$onUpdateFn(() => sql`now()`),
-    },
-    (table) => ({
-        // Ensure exactly one sync row per mailbox
-        uxMailbox: uniqueIndex("ux_mailbox_sync_mailbox").on(table.mailboxId),
-        // Helpful indexes for queries
-        ixIdentity: index("ix_mailbox_sync_identity").on(table.identityId),
-        ixPhase: index("ix_mailbox_sync_phase").on(table.phase),
-    })
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			// keep updatedAt fresh on UPDATEs
+			.$onUpdateFn(() => sql`now()`),
+	},
+	(table) => ({
+		// Ensure exactly one sync row per mailbox
+		uxMailbox: uniqueIndex("ux_mailbox_sync_mailbox").on(table.mailboxId),
+		// Helpful indexes for queries
+		ixIdentity: index("ix_mailbox_sync_identity").on(table.identityId),
+		ixPhase: index("ix_mailbox_sync_phase").on(table.phase),
+	}),
 );
 
 export const messageAttachments = pgTable(

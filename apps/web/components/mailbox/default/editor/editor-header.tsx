@@ -10,7 +10,7 @@ import {
 import { Forward, Reply } from "lucide-react";
 import { useDynamicContext } from "@/hooks/use-dynamic-context";
 import { MessageEntity } from "@db";
-import {fromAddress} from "@schema";
+import { fromAddress } from "@schema";
 
 function EditorHeader() {
 	const [mode, setMode] = useState<"reply" | "forward">("reply");

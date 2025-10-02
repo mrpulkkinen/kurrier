@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useState } from "react";
-import {MessageAttachmentEntity, MessageEntity} from "@db";
-import {fromAddress, fromName} from "@schema";
+import { MessageAttachmentEntity, MessageEntity } from "@db";
+import { fromAddress, fromName } from "@schema";
 import slugify from "@sindresorhus/slugify";
 import { ChevronDown, EllipsisVertical, Reply, Star } from "lucide-react";
 import { Temporal } from "@js-temporal/polyfill";

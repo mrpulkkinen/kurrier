@@ -1,15 +1,20 @@
 import {
-    providers,
-    smtpAccounts,
-    identities,
-    mailboxes,
-    messages,
-    threads,
-    messageAttachments, mailboxSync,
+	providers,
+	smtpAccounts,
+	identities,
+	mailboxes,
+	messages,
+	threads,
+	messageAttachments,
+	mailboxSync,
 } from "./schema";
 import { decryptedSecrets } from "./supabase-schema";
 import { z } from "zod";
-import {createInsertSchema, createSelectSchema, createUpdateSchema} from "drizzle-zod";
+import {
+	createInsertSchema,
+	createSelectSchema,
+	createUpdateSchema,
+} from "drizzle-zod";
 
 export type ProviderEntity = typeof providers.$inferSelect;
 export type ProviderCreate = typeof providers.$inferInsert;

@@ -552,10 +552,9 @@ export class SesMailer implements Mailer {
 
 	async addDomain(
 		domain: string,
-		opts: Record<any, any>
+		opts: Record<any, any>,
 	): Promise<DomainIdentity> {
-
-        const { mailFrom, incoming } = opts;
+		const { mailFrom, incoming } = opts;
 		// 1) Create/enable identity with Easy DKIM
 		try {
 			await this.v2.send(

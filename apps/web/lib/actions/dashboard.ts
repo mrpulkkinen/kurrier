@@ -17,16 +17,18 @@ import {
 	updateSecret,
 } from "@db";
 import {
-    DomainIdentityFormSchema,
-    FormState,
-    getPublicEnv, getServerEnv,
-    handleAction,
-    MailboxKindDisplay,
-    ProviderAccountFormSchema,
-    Providers,
-    PROVIDERS, SMTP_MAILBOXES,
-    SmtpAccountFormSchema,
-    SYSTEM_MAILBOXES,
+	DomainIdentityFormSchema,
+	FormState,
+	getPublicEnv,
+	getServerEnv,
+	handleAction,
+	MailboxKindDisplay,
+	ProviderAccountFormSchema,
+	Providers,
+	PROVIDERS,
+	SMTP_MAILBOXES,
+	SmtpAccountFormSchema,
+	SYSTEM_MAILBOXES,
 } from "@schema";
 import { currentSession } from "@/lib/actions/auth";
 import { eq } from "drizzle-orm";
@@ -39,7 +41,7 @@ import { z } from "zod";
 import slugify from "@sindresorhus/slugify";
 import { rlsClient } from "@/lib/actions/clients";
 import { v4 as uuidv4 } from "uuid";
-import {createClient} from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 const DASHBOARD_PATH = "/dashboard/providers";
 
@@ -331,17 +333,16 @@ export async function initializeDomainIdentity(
 		const decrypted = secret.parsedSecret;
 		const mailer = createMailer(providerIdentifier, decrypted);
 
-        const opts = {} as Record<any, any>
-        opts.incoming = String(data?.incomingDomain) === "true"
-        if (providerIdentifier === "ses") {
-            opts.mailFrom = String(data?.mailFromSubdomain ?? "").trim() || undefined
-        } else if (providerIdentifier === "sendgrid") {
-            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
-            const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL
-            opts.webHookUrl = `${url}/api/v1/hooks/sendgrid/inbound`
-        }
+		const opts = {} as Record<any, any>;
+		opts.incoming = String(data?.incomingDomain) === "true";
+		if (providerIdentifier === "ses") {
+			opts.mailFrom = String(data?.mailFromSubdomain ?? "").trim() || undefined;
+		} else if (providerIdentifier === "sendgrid") {
+			const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+			const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL;
+			opts.webHookUrl = `${url}/api/v1/hooks/sendgrid/inbound`;
+		}
 		const identity = await mailer.addDomain(String(data?.value), opts);
-
 
 		return {
 			success: true,
@@ -396,22 +397,22 @@ export async function verifyDomainIdentity(
 			decrypted,
 		);
 
+		const opts = {} as Record<any, any>;
 
-        const opts = {} as Record<any, any>
+		if (providerAccount?.provider?.type !== "ses") {
+			const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
+			const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL;
+			if (providerAccount?.provider?.type === "mailgun") {
+				opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/mime`;
+			} else {
+				opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/inbound`;
+			}
+		}
 
-        if (providerAccount?.provider?.type !== "ses"){
-            const { WEB_URL, WEB_PROXY_URL } = getPublicEnv();
-            const url = WEB_PROXY_URL ? WEB_PROXY_URL : WEB_URL
-            if (providerAccount?.provider?.type === "mailgun"){
-                opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/mime`
-            } else {
-                opts.webHookUrl = `${url}/api/v1/hooks/${providerAccount?.provider?.type}/inbound`
-            }
-        }
-
-		const response = await mailer.verifyDomain(userDomainIdentity.identities.value, opts);
-
-
+		const response = await mailer.verifyDomain(
+			userDomainIdentity.identities.value,
+			opts,
+		);
 
 		const rls = await rlsClient();
 		await rls((tx) =>
@@ -445,14 +446,16 @@ const initializeEmailIdentity = async (
 		const mailer = createMailer(secret?.provider?.type as Providers, decrypted);
 		const provider = await getProviderById(String(data?.providerId));
 
-        let response = {} as any
-        if (provider.type === "ses") {
-            response = await mailer.addEmail(
-                String(data?.value),
-                `inbound/${provider.ownerId}/${provider.id}/${id}`,
-                provider?.metaData?.verification ? provider?.metaData?.verification : {},
-            );
-        }
+		let response = {} as any;
+		if (provider.type === "ses") {
+			response = await mailer.addEmail(
+				String(data?.value),
+				`inbound/${provider.ownerId}/${provider.id}/${id}`,
+				provider?.metaData?.verification
+					? provider?.metaData?.verification
+					: {},
+			);
+		}
 
 		return {
 			success: true,
@@ -462,31 +465,30 @@ const initializeEmailIdentity = async (
 };
 
 export const triggerWorker = async (id: string) => {
-    console.log("Listening to mailbox changes on channel:");
-    const supabase = await createClient()
-    const testChannel = supabase.channel(`smtp-worker`);
-    testChannel.subscribe((status) => {
-        if (status !== "SUBSCRIBED") {
-            return null;
-        }
-        testChannel.send({
-            type: "broadcast",
-            event: "backfill",
-            payload: { identityId: id },
-        });
-        testChannel.unsubscribe();
+	console.log("Listening to mailbox changes on channel:");
+	const supabase = await createClient();
+	const testChannel = supabase.channel(`smtp-worker`);
+	testChannel.subscribe((status) => {
+		if (status !== "SUBSCRIBED") {
+			return null;
+		}
+		testChannel.send({
+			type: "broadcast",
+			event: "backfill",
+			payload: { identityId: id },
+		});
+		testChannel.unsubscribe();
 
-        return;
-    });
-    return
-}
-
+		return;
+	});
+	return;
+};
 
 export const initializeMailboxes = async (emailIdentity: IdentityEntity) => {
 	// sanity check: only for email kind
 	if (emailIdentity.kind !== "email") return;
 
-    if (emailIdentity.smtpAccountId) return
+	if (emailIdentity.smtpAccountId) return;
 	// insert one row per mailbox kind
 	const rows = SYSTEM_MAILBOXES.map((m) => ({
 		ownerId: emailIdentity.ownerId,
@@ -534,7 +536,6 @@ export async function addNewEmailIdentity(
 			);
 			await initializeMailboxes(identity);
 		} else {
-
 			data.domainIdentityId = data.domain;
 
 			const [domainIdentity] = await rls((tx) =>
@@ -599,7 +600,7 @@ export const testSendingEmail = async (
 			);
 			await mailer.sendTestEmail(userIdentity.identities.value, {
 				subject: "Test email from Kurrier",
-                from: userIdentity.identities.value,
+				from: userIdentity.identities.value,
 				body: "This is a test email from your configured account in Kurrier.",
 			});
 			return { success: true, message: "Test email sent successfully." };
@@ -674,17 +675,17 @@ export const deleteEmailIdentity = async (
 			const mailer = createMailer(providerType, secret.parsedSecret);
 			if (userIdentity?.providers?.type === "ses") {
 				await mailer.removeEmail(userIdentity?.identities?.value, {
-                        ruleSetName: userIdentity?.identities?.metaData?.ruleSetName,
-                        ruleName: userIdentity?.identities?.metaData?.ruleName
-                });
+					ruleSetName: userIdentity?.identities?.metaData?.ruleSetName,
+					ruleName: userIdentity?.identities?.metaData?.ruleName,
+				});
 			}
 		}
 
-        await rls((tx) =>
-            tx
-                .delete(identities)
-                .where(eq(identities.id, String(userIdentity.identities.id))),
-        );
+		await rls((tx) =>
+			tx
+				.delete(identities)
+				.where(eq(identities.id, String(userIdentity.identities.id))),
+		);
 
 		revalidatePath(DASHBOARD_PATH);
 		return { success: true, message: "Deleted email identity" };
@@ -729,88 +730,88 @@ export const verifyProviderAccount = async (
 				);
 			}
 		} else if (providerType === "mailgun") {
-            const mailer = createMailer(providerType, providerSecret.parsedSecret);
-            res = await mailer.verify(String(providerSecret?.metaId), {});
+			const mailer = createMailer(providerType, providerSecret.parsedSecret);
+			res = await mailer.verify(String(providerSecret?.metaId), {});
 
-            const data = providerSecret.parsedSecret;
-            data.verified = res.ok;
+			const data = providerSecret.parsedSecret;
+			data.verified = res.ok;
 
-            const session = await currentSession();
-            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
-                value: JSON.stringify(data),
-            });
+			const session = await currentSession();
+			await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+				value: JSON.stringify(data),
+			});
 
-            if (res.ok) {
-                const rls = await rlsClient();
-                await rls((tx) =>
-                    tx
-                        .update(providers)
-                        .set({
-                            metaData: {
-                                ...(providerSecret?.provider?.metaData ?? {}),
-                                ...{ verification: res.meta },
-                            },
-                        })
-                        .where(
-                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
-                        ),
-                );
-            }
+			if (res.ok) {
+				const rls = await rlsClient();
+				await rls((tx) =>
+					tx
+						.update(providers)
+						.set({
+							metaData: {
+								...(providerSecret?.provider?.metaData ?? {}),
+								...{ verification: res.meta },
+							},
+						})
+						.where(
+							eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+						),
+				);
+			}
 		} else if (providerType === "postmark") {
-            const mailer = createMailer(providerType, providerSecret.parsedSecret);
-            res = await mailer.verify(String(providerSecret?.metaId), {});
-            const data = providerSecret.parsedSecret;
-            data.verified = res.ok;
+			const mailer = createMailer(providerType, providerSecret.parsedSecret);
+			res = await mailer.verify(String(providerSecret?.metaId), {});
+			const data = providerSecret.parsedSecret;
+			data.verified = res.ok;
 
-            const session = await currentSession();
-            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
-                value: JSON.stringify(data),
-            });
+			const session = await currentSession();
+			await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+				value: JSON.stringify(data),
+			});
 
-            if (res.ok) {
-                const rls = await rlsClient();
-                await rls((tx) =>
-                    tx
-                        .update(providers)
-                        .set({
-                            metaData: {
-                                ...(providerSecret?.provider?.metaData ?? {}),
-                                ...{ verification: res.meta },
-                            },
-                        })
-                        .where(
-                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
-                        ),
-                );
-            }
+			if (res.ok) {
+				const rls = await rlsClient();
+				await rls((tx) =>
+					tx
+						.update(providers)
+						.set({
+							metaData: {
+								...(providerSecret?.provider?.metaData ?? {}),
+								...{ verification: res.meta },
+							},
+						})
+						.where(
+							eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+						),
+				);
+			}
 		} else if (providerType === "sendgrid") {
-            const mailer = createMailer(providerType, providerSecret.parsedSecret);
-            res = await mailer.verify(String(providerSecret?.metaId), {});
-            const data = providerSecret.parsedSecret;
-            data.verified = res.ok;
+			const mailer = createMailer(providerType, providerSecret.parsedSecret);
+			res = await mailer.verify(String(providerSecret?.metaId), {});
+			const data = providerSecret.parsedSecret;
+			data.verified = res.ok;
 
-            const session = await currentSession();
-            await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
-                value: JSON.stringify(data),
-            });
+			const session = await currentSession();
+			await updateSecret(session, String(providerSecret?.linkRow?.secretId), {
+				value: JSON.stringify(data),
+			});
 
-            if (res.ok) {
-                const rls = await rlsClient();
-                await rls((tx) =>
-                    tx
-                        .update(providers)
-                        .set({
-                            metaData: {
-                                ...(providerSecret?.provider?.metaData ?? {}),
-                                ...{ verification: res.meta },
-                            },
-                        })
-                        .where(
-                            eq(providers.id, String(providerSecret?.linkRow?.providerId)),
-                        ),
-                );
-            }
-        }
+			if (res.ok) {
+				const rls = await rlsClient();
+				await rls((tx) =>
+					tx
+						.update(providers)
+						.set({
+							metaData: {
+								...(providerSecret?.provider?.metaData ?? {}),
+								...{ verification: res.meta },
+							},
+						})
+						.where(
+							eq(providers.id, String(providerSecret?.linkRow?.providerId)),
+						),
+				);
+			}
+		}
 
 		revalidatePath(DASHBOARD_PATH);
 

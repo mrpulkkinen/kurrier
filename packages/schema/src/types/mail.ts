@@ -35,11 +35,7 @@ export const messageStatesList = [
 	"failed",
 ] as const;
 
-export const mailboxSyncPhase = [
-    "BOOTSTRAP",
-    "BACKFILL",
-    "IDLE",
-] as const;
+export const mailboxSyncPhase = ["BOOTSTRAP", "BACKFILL", "IDLE"] as const;
 
 export const messagePriorityList = ["low", "medium", "high"] as const;
 
@@ -79,11 +75,9 @@ export const SYSTEM_MAILBOXES: Array<{
 ];
 
 export const SMTP_MAILBOXES: Array<{
-    kind: MailboxKind;
-    isDefault: boolean;
-}> = [
-    { kind: "inbox", isDefault: true },
-];
+	kind: MailboxKind;
+	isDefault: boolean;
+}> = [{ kind: "inbox", isDefault: true }];
 
 export type EmailAddressJSON = {
 	address?: string | null;
@@ -109,9 +103,9 @@ export type MailComposeInput = {
 };
 
 export type BackfillItem = {
-    mailboxId: string;
-    identityId: string;
-    path: string;
-    specialUse: string | null;
-    priority: number;     // lower = sooner
+	mailboxId: string;
+	identityId: string;
+	path: string;
+	specialUse: string | null;
+	priority: number; // lower = sooner
 };

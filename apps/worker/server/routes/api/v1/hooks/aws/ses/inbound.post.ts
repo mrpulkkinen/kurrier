@@ -4,7 +4,7 @@ import {
 	decryptAdminSecrets,
 	mailboxes,
 	providers,
-	providerSecrets
+	providerSecrets,
 } from "@db";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { getPublicEnv, getServerEnv } from "@schema";
 import { createClient } from "@supabase/supabase-js";
 
-import {parseAndStoreEmail} from "../../../../../../../lib/message-payload-parser";
+import { parseAndStoreEmail } from "../../../../../../../lib/message-payload-parser";
 
 // async function createOrInitializeThread(
 // 	parsed: ParsedMail & {
@@ -240,12 +240,12 @@ export default defineEventHandler(async (event) => {
 				"****************************************************************",
 			);
 
-            await parseAndStoreEmail(rawEmail, {
-                ownerId,
-                mailboxId: targetMailboxId,
-                rawStorageKey: key, // S3 key
-                emlKey: emlId
-            });
+			await parseAndStoreEmail(rawEmail, {
+				ownerId,
+				mailboxId: targetMailboxId,
+				rawStorageKey: key, // S3 key
+				emlKey: emlId,
+			});
 
 			const channel = await supabase.channel(`${ownerId}-mailbox`);
 

@@ -1,21 +1,37 @@
-"use client"
-import React, {useEffect, useState} from 'react';
-import {Pagination} from "@mantine/core";
-import {useRouter} from "next/navigation";
+"use client";
+import React, { useEffect, useState } from "react";
+import { Pagination } from "@mantine/core";
+import { useRouter } from "next/navigation";
 
-function MailPagination({count, mailboxSlug, identityPublicId, page}: {count: number, mailboxSlug: string | null, identityPublicId: string, page?: number}) {
+function MailPagination({
+	count,
+	mailboxSlug,
+	identityPublicId,
+	page,
+}: {
+	count: number;
+	mailboxSlug: string | null;
+	identityPublicId: string;
+	page?: number;
+}) {
+	const [activePage, setPage] = useState(page || 1);
+	const router = useRouter();
 
-    const [activePage, setPage] = useState(page || 1);
-    const router = useRouter()
+	useEffect(() => {
+		if (activePage !== page && activePage) {
+			router.push(
+				`/mail/${identityPublicId}/${mailboxSlug}?page=${activePage}`,
+			);
+		}
+	}, [activePage, page]);
 
-    useEffect(() => {
-        if ((activePage !== page) && activePage) {
-            router.push(`/mail/${identityPublicId}/${mailboxSlug}?page=${activePage}`)
-        }
-    }, [activePage, page])
-
-
-    return <Pagination value={activePage} onChange={setPage} total={count > 0 ? count/50 : 0} />
+	return (
+		<Pagination
+			value={activePage}
+			onChange={setPage}
+			total={count > 0 ? count / 50 : 0}
+		/>
+	);
 }
 
 export default MailPagination;

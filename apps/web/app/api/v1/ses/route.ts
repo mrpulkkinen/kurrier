@@ -1,10 +1,9 @@
-import {NextRequest, NextResponse} from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
+	console.log("was here");
 
-    console.log("was here")
-
-    return NextResponse.json({
-        yay: 5
-    });
+	return NextResponse.json({
+		yay: 5,
+	});
 }

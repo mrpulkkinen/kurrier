@@ -13,7 +13,7 @@
 	},
 	"dependencies": {
 		"@supabase/ssr": "^0.7.0",
-		"imapflow": "^1.0.197",
+		"imapflow": "^1.0.198",
 		"mailparser": "^3.7.4"
 	}
 }

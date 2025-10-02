@@ -7,46 +7,49 @@ import { Pagination } from "@mantine/core";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    total: number;
-    pageSize: number;
-    page?: number;
-    identityPublicId: string;
-    mailboxSlug: string | null;
-    q: string;
-    has: boolean;
-    unread: boolean;
+	total: number;
+	pageSize: number;
+	page?: number;
+	identityPublicId: string;
+	mailboxSlug: string | null;
+	q: string;
+	has: boolean;
+	unread: boolean;
 };
 
 export default function SearchPagination({
-                                             total,
-                                             pageSize,
-                                             page = 1,
-                                             identityPublicId,
-                                             mailboxSlug,
-                                             q,
-                                             has,
-                                             unread,
-                                         }: Props) {
-    const [activePage, setPage] = useState(page);
-    const router = useRouter();
-    const totalPages = Math.max(1, Math.ceil((total || 1) / pageSize));
+	total,
+	pageSize,
+	page = 1,
+	identityPublicId,
+	mailboxSlug,
+	q,
+	has,
+	unread,
+}: Props) {
+	const [activePage, setPage] = useState(page);
+	const router = useRouter();
+	const totalPages = Math.max(1, Math.ceil((total || 1) / pageSize));
 
-    useEffect(() => {
-        if (activePage !== page && activePage) {
-            const params = new URLSearchParams();
-            if (q) params.set("q", q);
-            params.set("has", has ? "1" : "0");
-            params.set("unread", unread ? "1" : "0");
-            params.set("page", String(activePage));
+	useEffect(() => {
+		if (activePage !== page && activePage) {
+			const params = new URLSearchParams();
+			if (q) params.set("q", q);
+			params.set("has", has ? "1" : "0");
+			params.set("unread", unread ? "1" : "0");
+			params.set("page", String(activePage));
 
-            router.push(`/mail/${identityPublicId}/${mailboxSlug}/search?${params.toString()}`);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activePage]);
+			router.push(
+				`/mail/${identityPublicId}/${mailboxSlug}/search?${params.toString()}`,
+			);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activePage]);
 
-    return <Pagination value={activePage} onChange={setPage} total={totalPages} />;
+	return (
+		<Pagination value={activePage} onChange={setPage} total={totalPages} />
+	);
 }
-
 
 // "use client"
 // import React, {useEffect, useState} from 'react';

@@ -31,12 +31,13 @@ import { modals } from "@mantine/modals";
 import { PROVIDER_CONFIG } from "@/components/dashboard/identities/PROVIDER_CONFIG";
 import AddEmailIdentityForm from "@/components/dashboard/identities/add-email-identity-form";
 import {
-    deleteDomainIdentity,
-    deleteEmailIdentity,
-    FetchDecryptedSecretsResult,
-    FetchUserIdentitiesResult,
-    testSendingEmail, triggerWorker,
-    verifyDomainIdentity,
+	deleteDomainIdentity,
+	deleteEmailIdentity,
+	FetchDecryptedSecretsResult,
+	FetchUserIdentitiesResult,
+	testSendingEmail,
+	triggerWorker,
+	verifyDomainIdentity,
 } from "@/lib/actions/dashboard";
 import ProviderBadge from "@/components/dashboard/identities/provider-badge";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
@@ -46,7 +47,7 @@ import { toast, Toaster } from "sonner";
 import AddDomainIdentityForm from "@/components/dashboard/identities/add-domain-identity-form";
 import { FormState, IdentityStatusMeta, Providers } from "@schema";
 import EmailIdentityStatus from "@/components/dashboard/identities/email-identity-status";
-import {backfillAccount} from "@/lib/actions/mailbox";
+import { backfillAccount } from "@/lib/actions/mailbox";
 
 export type Status = "verified" | "pending" | "failed";
 
@@ -839,7 +840,13 @@ export default function MailIdentities({
 
 										{/* Right: actions */}
 										<div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                                            <button onClick={() => backfillAccount(userIdentity.identities.id)}>trigger</button>
+											<button
+												onClick={() =>
+													backfillAccount(userIdentity.identities.id)
+												}
+											>
+												trigger
+											</button>
 											<Button
 												leftSection={<IconSend size={16} />}
 												size="xs"

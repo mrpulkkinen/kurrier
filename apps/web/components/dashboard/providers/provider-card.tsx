@@ -7,24 +7,24 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {Edit, ExternalLink, Globe, Play, Trash, Unplug} from "lucide-react";
+import { Edit, ExternalLink, Globe, Play, Trash, Unplug } from "lucide-react";
 import * as React from "react";
 import {
-    FetchDecryptedSecretsResult,
-    SyncProvidersRow,
-    verifyProviderAccount,
+	FetchDecryptedSecretsResult,
+	SyncProvidersRow,
+	verifyProviderAccount,
 } from "@/lib/actions/dashboard";
 import ProviderEditForm from "@/components/dashboard/providers/provider-edit-form";
 import { modals } from "@mantine/modals";
 import NewSmtpAccountForm from "@/components/dashboard/providers/new-smtp-account-form";
-import {ActionIcon, Button} from "@mantine/core";
+import { ActionIcon, Button } from "@mantine/core";
 import { useMemo, useState } from "react";
 import { VerifyResult } from "@providers";
 import { toast } from "sonner";
 import { parseSecret } from "@/lib/utils";
 import IsVerifiedStatus from "@/components/dashboard/providers/is-verified-status";
-import {Toaster} from "@/components/ui/sonner";
-import {useAppearance} from "@/components/providers/appearance-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { useAppearance } from "@/components/providers/appearance-provider";
 
 export default function ProviderCard({
 	spec,
@@ -40,45 +40,45 @@ export default function ProviderCard({
 	}, [decryptedSecret]);
 
 	// const openUnplug = () => {
-    //     const openModalId = modals.open({
-    //         title: (
-    //             <div className="font-semibold text-brand-foreground">
-    //                 Unplug {spec.name} Account
-    //             </div>
-    //         ),
-    //         size: "lg",
-    //         children: (
-    //             <CardContent className={"my-6"}>
-    //                 <div className="space-y-3 flex flex-col gap-12">
-    //                     Warning: This action will remove the kurrier related assets from your {spec.name} account and from your
-    //                     dashboard. You can re-add the account later if needed.
-    //
-    //                     <Button
-    //                         // onClick={() => initTestAccount()}
-    //                         onClick={initDisconnect}
-    //                         loading={disconnecting}
-    //                         size={"xs"}
-    //                         color={"red"}
-    //                         leftSection={<Unplug className="size-4" />}
-    //                         // className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
-    //                     >
-    //                         Disconnect Connection
-    //                     </Button>
-    //                 </div>
-    //             </CardContent>
-    //         ),
-    //     });
-    // }
-    //
-    // const [disconnecting, setDisconnecting] = useState(false);
-    // const initDisconnect = async () => {
-    //     setDisconnecting(true)
-    //     const { data: res } = await disconnectProviderAccount(
-    //         userProvider.type,
-    //         decryptedSecret,
-    //     );
-    //
-    // }
+	//     const openModalId = modals.open({
+	//         title: (
+	//             <div className="font-semibold text-brand-foreground">
+	//                 Unplug {spec.name} Account
+	//             </div>
+	//         ),
+	//         size: "lg",
+	//         children: (
+	//             <CardContent className={"my-6"}>
+	//                 <div className="space-y-3 flex flex-col gap-12">
+	//                     Warning: This action will remove the kurrier related assets from your {spec.name} account and from your
+	//                     dashboard. You can re-add the account later if needed.
+	//
+	//                     <Button
+	//                         // onClick={() => initTestAccount()}
+	//                         onClick={initDisconnect}
+	//                         loading={disconnecting}
+	//                         size={"xs"}
+	//                         color={"red"}
+	//                         leftSection={<Unplug className="size-4" />}
+	//                         // className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
+	//                     >
+	//                         Disconnect Connection
+	//                     </Button>
+	//                 </div>
+	//             </CardContent>
+	//         ),
+	//     });
+	// }
+	//
+	// const [disconnecting, setDisconnecting] = useState(false);
+	// const initDisconnect = async () => {
+	//     setDisconnecting(true)
+	//     const { data: res } = await disconnectProviderAccount(
+	//         userProvider.type,
+	//         decryptedSecret,
+	//     );
+	//
+	// }
 
 	const openEdit = () => {
 		const openModalId = modals.open({
@@ -154,84 +154,91 @@ export default function ProviderCard({
 		}
 	};
 
-    const {mode} = useAppearance()
+	const { mode } = useAppearance();
 
-	return <div>
-        <Toaster theme={mode} expand={true} />
-		<Card className="shadow-none relative">
-			<CardHeader className="gap-3">
-				<div className="flex flex-col gap-3">
-					<div className="flex min-w-0 items-start gap-3">
-						<Globe className="mt-1 size-4 shrink-0 text-muted-foreground" />
-						<div className="min-w-0">
-							<CardTitle className="text-lg sm:text-xl">{spec.name}</CardTitle>
-							{/*<small>{userProvider?.providers.id}</small>*/}
-							<p className="text-sm text-muted-foreground">
-								Managed via environment variables. Toggle by adding/removing
-								keys.
-							</p>
+	return (
+		<div>
+			<Toaster theme={mode} expand={true} />
+			<Card className="shadow-none relative">
+				<CardHeader className="gap-3">
+					<div className="flex flex-col gap-3">
+						<div className="flex min-w-0 items-start gap-3">
+							<Globe className="mt-1 size-4 shrink-0 text-muted-foreground" />
+							<div className="min-w-0">
+								<CardTitle className="text-lg sm:text-xl">
+									{spec.name}
+								</CardTitle>
+								{/*<small>{userProvider?.providers.id}</small>*/}
+								<p className="text-sm text-muted-foreground">
+									Managed via environment variables. Toggle by adding/removing
+									keys.
+								</p>
+							</div>
+						</div>
+
+						{/* Actions BELOW (unchanged) */}
+						<div className="flex flex-wrap gap-2">
+							<CardAction className="flex w-full flex-wrap gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
+								{/*<StatusBadge ok={allGood} />*/}
+
+								<Button
+									variant="outline"
+									// asChild
+									component={"a"}
+									size={"xs"}
+									href={spec.docsUrl}
+									target="_blank"
+									// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm"
+									leftSection={<ExternalLink className="size-4" />}
+								>
+									Docs
+								</Button>
+
+								<Button
+									// onClick={() => initTestAccount()}
+									onClick={initVerifyAccount}
+									loading={testing}
+									size={"xs"}
+									leftSection={<Play className="size-4" />}
+									// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
+								>
+									Verify Connection
+								</Button>
+								<Button
+									onClick={openEdit}
+									size={"xs"}
+									leftSection={<Edit className="size-4" />}
+									// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
+								>
+									Edit
+								</Button>
+								{/*<ActionIcon onClick={openUnplug} color={"red"}>*/}
+								{/*    <Unplug size={18} />*/}
+								{/*</ActionIcon>*/}
+							</CardAction>
 						</div>
 					</div>
+					<IsVerifiedStatus
+						verified={decryptedValues.verified}
+						statusName={""}
+					/>
+				</CardHeader>
 
-					{/* Actions BELOW (unchanged) */}
-					<div className="flex flex-wrap gap-2">
-						<CardAction className="flex w-full flex-wrap gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
-							{/*<StatusBadge ok={allGood} />*/}
+				{/*<CardContent className="space-y-4 mb-16">*/}
+				{/*	<div className="text-xs uppercase tracking-wider text-muted-foreground">*/}
+				{/*		Required ENV*/}
+				{/*	</div>*/}
 
-							<Button
-								variant="outline"
-								// asChild
-								component={"a"}
-								size={"xs"}
-								href={spec.docsUrl}
-								target="_blank"
-								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm"
-								leftSection={<ExternalLink className="size-4" />}
-							>
-								Docs
-							</Button>
-
-							<Button
-								// onClick={() => initTestAccount()}
-								onClick={initVerifyAccount}
-								loading={testing}
-								size={"xs"}
-								leftSection={<Play className="size-4" />}
-								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
-							>
-								Verify Connection
-							</Button>
-							<Button
-								onClick={openEdit}
-								size={"xs"}
-								leftSection={<Edit className="size-4" />}
-								// className="h-8 px-3 text-xs lg:h-9 lg:px-4 lg:text-sm gap-2"
-							>
-								Edit
-							</Button>
-                            {/*<ActionIcon onClick={openUnplug} color={"red"}>*/}
-                            {/*    <Unplug size={18} />*/}
-                            {/*</ActionIcon>*/}
-						</CardAction>
-					</div>
-				</div>
-				<IsVerifiedStatus verified={decryptedValues.verified} statusName={""} />
-			</CardHeader>
-
-			{/*<CardContent className="space-y-4 mb-16">*/}
-			{/*	<div className="text-xs uppercase tracking-wider text-muted-foreground">*/}
-			{/*		Required ENV*/}
-			{/*	</div>*/}
-
-			{/*	<div className="space-y-3">*/}
-			{/*		<input type={"hidden"} name={"providerId"} value={userProvider.id} />*/}
-			{/*		<ProviderEditForm*/}
-			{/*			spec={spec}*/}
-			{/*			providerId={userProvider.id}*/}
-			{/*			decryptedSecrets={decryptedSecrets}*/}
-			{/*		/>*/}
-			{/*	</div>*/}
-			{/*</CardContent>*/}
-		</Card>
-    </div>
+				{/*	<div className="space-y-3">*/}
+				{/*		<input type={"hidden"} name={"providerId"} value={userProvider.id} />*/}
+				{/*		<ProviderEditForm*/}
+				{/*			spec={spec}*/}
+				{/*			providerId={userProvider.id}*/}
+				{/*			decryptedSecrets={decryptedSecrets}*/}
+				{/*		/>*/}
+				{/*	</div>*/}
+				{/*</CardContent>*/}
+			</Card>
+		</div>
+	);
 }

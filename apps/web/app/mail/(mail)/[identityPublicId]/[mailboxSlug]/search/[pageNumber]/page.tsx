@@ -1,9 +1,7 @@
-import React from 'react';
+import React from "react";
 
 function Page() {
-    return <>
-        Search Page!
-    </>
+	return <>Search Page!</>;
 }
 
 export default Page;

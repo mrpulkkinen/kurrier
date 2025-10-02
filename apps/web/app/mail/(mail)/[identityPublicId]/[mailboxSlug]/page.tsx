@@ -1,21 +1,21 @@
-import {
-	fetchMailbox,
-	fetchMailboxThreads,
-} from "@/lib/actions/mailbox";
+import { fetchMailbox, fetchMailboxThreads } from "@/lib/actions/mailbox";
 import { getPublicEnv } from "@schema";
 import ThreadList from "@/components/mailbox/default/thread-list";
 import MailPagination from "@/components/mailbox/default/mail-pagination";
 
 async function Page({
 	params,
-    searchParams
+	searchParams,
 }: {
 	params: { identityPublicId: string; mailboxSlug?: string };
-    searchParams: {page?: string}
+	searchParams: { page?: string };
 }) {
-    const {page} = await searchParams
+	const { page } = await searchParams;
 	const { identityPublicId, mailboxSlug } = await params;
-	const { activeMailbox, count } = await fetchMailbox(identityPublicId, mailboxSlug);
+	const { activeMailbox, count } = await fetchMailbox(
+		identityPublicId,
+		mailboxSlug,
+	);
 	const { threads } = await fetchMailboxThreads(activeMailbox.id, Number(page));
 	const publicConfig = getPublicEnv();
 
@@ -29,7 +29,12 @@ async function Page({
 					identityPublicId={identityPublicId}
 				/>
 
-                <MailPagination count={count} mailboxSlug={activeMailbox.slug} identityPublicId={identityPublicId} page={Number(page)} />
+				<MailPagination
+					count={count}
+					mailboxSlug={activeMailbox.slug}
+					identityPublicId={identityPublicId}
+					page={Number(page)}
+				/>
 
 				{/*{Array.from({ length: 24 }).map((_, index) => (*/}
 				{/*	<div*/}
