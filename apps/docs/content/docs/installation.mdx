@@ -84,7 +84,7 @@ You can also use any other tunneling service of your choice.
 Update your `.env` file with the generated public URL:
 
 ```bash
-LOCAL_TUNNEL_URL=https://48c2c6e61d81.ngrok-free.app
+LOCAL_TUNNEL_URL=https://your-ngrok-tunnel-url.ngrok-free.app
 ```
 
 <Callout type="warning">
@@ -99,7 +99,8 @@ When hosting Kurrier on a server or cloud instance (e.g. DigitalOcean, AWS, Hetz
 you should use your own domain and disable tunneling by removing or commenting out the `LOCAL_TUNNEL_URL` variable in your `.env` file.
 
 ```bash
-WEB_URL=https://www.yourdomain.com
+WEB_URL=https://www.yourdomain.com // just an example
+NITRO_URL=https://worker.yourdomain.com // just an example
 ```
 
 ---
