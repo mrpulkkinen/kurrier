@@ -89,10 +89,6 @@ export default defineEventHandler(async (event) => {
 
 			console.dir(parsed, { depth: 10 });
 
-			// const messageId =
-			// 	parsed.messageId || String(headers.get("message-id") || "").trim();
-			// if (!messageId) throw new Error("Missing message-id");
-
 			const userMailboxes = await db
 				.select()
 				.from(mailboxes)
@@ -139,17 +135,6 @@ export default defineEventHandler(async (event) => {
 			if (providerSaysSpam && spamMb) {
 				targetMailboxId = spamMb.id;
 			}
-			// else if (authSaysJunk && junkMb)       targetMailboxId = junkMb.id;
-
-			console.log(
-				"****************************************************************",
-			);
-			console.log(
-				"****************************************************************",
-			);
-			console.log(
-				"****************************************************************",
-			);
 
 			await parseAndStoreEmail(rawEmail, {
 				ownerId,
