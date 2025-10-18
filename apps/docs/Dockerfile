@@ -1,49 +1,30 @@
-# ---- deps (pre-fetch) ----
-FROM node:20-alpine AS deps
-WORKDIR /app
-
-# Optional but recommended for some Next.js native deps
-RUN apk add --no-cache libc6-compat
-
-# Use pnpm via Corepack and pin the version
-RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
-
-# Copy lockfile(s) first to maximize cache hits
-COPY package.json ./
-# If you use workspaces, also:
-# COPY pnpm-workspace.yaml ./
-# COPY apps/yourapp/package.json apps/yourapp/
-
-# Pre-fetch dependencies into pnpm store (no source yet)
-RUN pnpm fetch
-
-# ---- build ----
+# --- build ---
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# (optional, but helps some native deps on alpine)
+RUN apk add --no-cache libc6-compat
+
+# use pnpm via Corepack
 RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
 
-# Bring in the cached pnpm store from the deps stage
-COPY --from=deps /root/.local/share/pnpm/store /root/.local/share/pnpm/store
-
-# Now add the full source
+# copy app and build
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm install --no-frozen-lockfile && pnpm run build
 
-# Install from the offline store and build
-RUN pnpm install --frozen-lockfile --offline
-RUN pnpm run build
-
-# ---- runtime ----
+# --- runtime ---
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Next.js standalone output assumes next.config.js sets `output: 'standalone'`
+# Next.js standalone output
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 
-# If the standalone server is at server.js (Next default)
+# the standalone bundle includes its own node_modules and package.json
 CMD ["node", "server.js"]
 
 
