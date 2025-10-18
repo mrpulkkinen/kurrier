@@ -36,7 +36,7 @@ export default defineNitroPlugin(async (nitroApp) => {
     });
 
 
-    if (process.env.LOCAL_TUNNEL_URL && !String(process.env.WEB_URL).match("localhost")) {
+    if (process.env.LOCAL_TUNNEL_URL) {
         const existing = await kvGet("local-tunnel-url");
         if (!existing || existing !== process.env.LOCAL_TUNNEL_URL) {
             await kvSet("local-tunnel-url", process.env.LOCAL_TUNNEL_URL);
