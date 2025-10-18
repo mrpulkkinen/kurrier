@@ -1,82 +1,82 @@
 "use server";
 import { KJUR } from "jsrsasign";
 
-const JWT_HEADER = { alg: "HS256", typ: "JWT" };
-const now = new Date();
-const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-const fiveYears = new Date(
-	now.getFullYear() + 5,
-	now.getMonth(),
-	now.getDate(),
-);
-
-const anonToken = {
-	role: "anon",
-	iss: "supabase",
-	iat: Math.floor(today.valueOf() / 1000),
-	exp: Math.floor(fiveYears.valueOf() / 1000),
-};
-const serviceToken = {
-	role: "service_role",
-	iss: "supabase",
-	iat: Math.floor(today.valueOf() / 1000),
-	exp: Math.floor(fiveYears.valueOf() / 1000),
+const startOfToday = () => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 };
 
-const generateRandomString = (length: number) => {
-	const CHARS =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	let result = "";
+const addYears = (d: Date, years: number) =>
+    new Date(d.getFullYear() + years, d.getMonth(), d.getDate());
 
-	const MAX = Math.floor(256 / CHARS.length) * CHARS.length - 1;
+const toEpoch = (d: Date) => Math.floor(d.getTime() / 1000);
 
-	const randomUInt8Array = new Uint8Array(1);
+const JWS_ALG = "HS256";
+const JWT_HEADER_STR = JSON.stringify({ typ: "JWT" });
 
-	for (let i = 0; i < length; i++) {
-		let randomNumber: number;
-		do {
-			crypto.getRandomValues(randomUInt8Array);
-			randomNumber = randomUInt8Array[0];
-		} while (randomNumber > MAX);
-
-		result += CHARS[randomNumber % CHARS.length];
-	}
-
-	return result;
+const makePayload = (role: "anon" | "service_role") => {
+    const today = startOfToday();
+    const inFiveYears = addYears(today, 5);
+    return {
+        role,
+        iss: "supabase",
+        iat: toEpoch(today),
+        exp: toEpoch(inFiveYears),
+    };
 };
+
+const ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+function randomString(length: number, alphabet = ALPHABET): string {
+    const out: string[] = [];
+    const base = alphabet.length;
+    const max = Math.floor(0xffffffff / base) * base - 1; // highest unbiased 32-bit value
+
+    const bucket = new Uint32Array(64); // fill in chunks to reduce syscalls
+    while (out.length < length) {
+        crypto.getRandomValues(bucket);
+        for (let i = 0; i < bucket.length && out.length < length; i++) {
+            const v = bucket[i];
+            if (v <= max) out.push(alphabet[v % base]);
+        }
+    }
+    return out.join("");
+}
+
 
 export async function generateSecrets() {
-	const JWT_SECRET = generateRandomString(40);
-	const ANON_KEY = KJUR.jws.JWS.sign(null, JWT_HEADER, anonToken, JWT_SECRET);
-	const SERVICE_ROLE_KEY = KJUR.jws.JWS.sign(
-		null,
-		JWT_HEADER,
-		serviceToken,
-		JWT_SECRET,
-	);
+    // Core JWT secret shared by both tokens
+    const JWT_SECRET = randomString(40);
 
-	const REDIS_PASSWORD = generateRandomString(24);
-	const RLS_CLIENT_PASSWORD = generateRandomString(24);
-	const TYPESENSE_API_KEY = generateRandomString(32);
-	const POSTGRES_PASSWORD = generateRandomString(24);
-	const DASHBOARD_PASSWORD = generateRandomString(16);
-	const SECRET_KEY_BASE = generateRandomString(64);
-	const VAULT_ENC_KEY = generateRandomString(32);
-	const PG_META_CRYPTO_KEY = generateRandomString(32);
+    const anonToken = makePayload("anon");
+    const serviceToken = makePayload("service_role");
 
-	const envText = `
-REDIS_PASSWORD=${REDIS_PASSWORD}
-RLS_CLIENT_PASSWORD=${RLS_CLIENT_PASSWORD}
-TYPESENSE_API_KEY=${TYPESENSE_API_KEY}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-JWT_SECRET=${JWT_SECRET}
-ANON_KEY=${ANON_KEY}
-SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
-DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
-SECRET_KEY_BASE=${SECRET_KEY_BASE}
-VAULT_ENC_KEY=${VAULT_ENC_KEY}
-PG_META_CRYPTO_KEY=${PG_META_CRYPTO_KEY}
-    `.trim();
+    const ANON_KEY = KJUR.jws.JWS.sign(JWS_ALG, JWT_HEADER_STR, anonToken, JWT_SECRET);
+    const SERVICE_ROLE_KEY = KJUR.jws.JWS.sign(
+        JWS_ALG,
+        JWT_HEADER_STR,
+        serviceToken,
+        JWT_SECRET,
+    );
 
-	return envText;
+    // Misc secrets
+    const secrets = {
+        REDIS_PASSWORD: randomString(24),
+        RLS_CLIENT_PASSWORD: randomString(24),
+        TYPESENSE_API_KEY: randomString(32),
+        POSTGRES_PASSWORD: randomString(24),
+        JWT_SECRET,
+        ANON_KEY,
+        SERVICE_ROLE_KEY,
+        DASHBOARD_PASSWORD: randomString(16),
+        SECRET_KEY_BASE: randomString(64),
+        VAULT_ENC_KEY: randomString(32),
+        PG_META_CRYPTO_KEY: randomString(32),
+    } as const;
+
+    // Serialize to .env-style text
+    return Object.entries(secrets)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n");
 }
