@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
 
 # Copy lockfile(s) first to maximize cache hits
-COPY pnpm-lock.yaml package.json ./
+COPY package.json ./
 # If you use workspaces, also:
 # COPY pnpm-workspace.yaml ./
 # COPY apps/yourapp/package.json apps/yourapp/
