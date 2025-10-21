@@ -1,5 +1,23 @@
 # @kurrier/repo
 
+## 0.0.70
+
+### Patch Changes
+
+- [`5654eec`](https://github.com/kurrier-org/kurrier/commit/5654eec6c11a5a2fc3322e4709904921d60c9ce9) Thanks [@krokhale](https://github.com/krokhale)! - Build fix
+
+## 0.0.69
+
+### Patch Changes
+
+- [#198](https://github.com/kurrier-org/kurrier/pull/198) [`f933b55`](https://github.com/kurrier-org/kurrier/commit/f933b55beaec29aac265b6a844cc1126acef7a5f) Thanks [@krokhale](https://github.com/krokhale)! - Fixed starred for non Imap and mail list header
+
+## 0.0.68
+
+### Patch Changes
+
+- [`4ed733b`](https://github.com/kurrier-org/kurrier/commit/4ed733b844e4c319da5fab6a44a4620f6fb1365a) Thanks [@krokhale](https://github.com/krokhale)! - triggering a build
+
 ## 0.0.67
 
 ### Patch Changes
