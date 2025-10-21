@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
 	async rewrites() {
 		return {
 			beforeFiles: [
+                {
+                    source: '/api/kong/:path*',
+                    destination: `${process.env.API_URL}/:path*`,
+                },
 				{
 					source: "/api/v1/:path*",
 					destination: `${process.env.WORKER_URL}:3001/api/v1/:path*`,
