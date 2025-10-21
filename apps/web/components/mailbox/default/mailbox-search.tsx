@@ -12,7 +12,7 @@ import { initSearch } from "@/lib/actions/mailbox";
 import type { User } from "@supabase/supabase-js";
 import type { ThreadHit, SearchThreadsResponse } from "@schema";
 import Link from "next/link";
-import {usePathname, useRouter} from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 
 export default function MailboxSearch({
@@ -91,7 +91,7 @@ export default function MailboxSearch({
 
 	const router = useRouter();
 
-    const pathName = usePathname()
+	const pathName = usePathname();
 
 	return (
 		<>
@@ -101,11 +101,10 @@ export default function MailboxSearch({
 				className="flex w-full items-center gap-2 rounded-lg border bg-background px-4 py-2.5 text-muted-foreground hover:bg-muted/30"
 			>
 				<Search className="h-4 w-4 opacity-60" />
-				<span className="text-sm">Search mail (⌘K)</span>
+				<span className="text-sm">Search all mailboxes (⌘K)</span>
 			</button>
 
 			<CommandDialog open={open} onOpenChange={setOpen}>
-				{/* INPUT */}
 				<CommandInput
 					autoFocus
 					placeholder="Search mail…"
@@ -116,7 +115,7 @@ export default function MailboxSearch({
 							e.preventDefault();
 							setOpen(false);
 							router.push(
-								`${pathName.match("/dashboard/mail") ? "/dashboard" : "" }/mail/${publicId}/${mailboxSlug}/search?q=${encodeURIComponent(query)}&has=${hasAttachment ? "1" : "0"}&unread=${onlyUnread ? "1" : "0"}&starred=${isStarred ? "1" : "0"}`,
+								`${pathName.match("/dashboard/mail") ? "/dashboard" : ""}/mail/${publicId}/${mailboxSlug}/search?q=${encodeURIComponent(query)}&has=${hasAttachment ? "1" : "0"}&unread=${onlyUnread ? "1" : "0"}&starred=${isStarred ? "1" : "0"}`,
 							);
 						}
 					}}
@@ -170,7 +169,7 @@ export default function MailboxSearch({
 							{items.map((t) => (
 								<li key={t.id} className={"my-2"}>
 									<Link
-										href={`${pathName.match("/dashboard/mail") ? "/dashboard/mail" : "/mail" }/${publicId}/inbox/threads/${t.threadId}`}
+										href={`${pathName.match("/dashboard/mail") ? "/dashboard/mail" : "/mail"}/${publicId}/inbox/threads/${t.threadId}`}
 										type="button"
 										className="w-full rounded-md px-4 py-3 text-left hover:bg-muted/60 block focus:outline-none focus:ring-2 focus:ring-ring"
 									>
