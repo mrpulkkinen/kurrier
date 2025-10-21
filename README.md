@@ -42,9 +42,9 @@ Easily switch between multiple sender identities and manage your connected accou
 ![Kurrier Identity View](https://www.kurrier.org/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fdoc-identities.ea020d9f.png&w=1920&q=100)
 
 ### 📨 Webmail View
-A fast, minimal interface for reading and managing your emails across accounts.
+A unified fast, minimal interface for reading and managing your emails across accounts.
 
-![Kurrier Webmail View](https://www.kurrier.org/light-mailbox.png)
+![Kurrier Webmail View](https://www.kurrier.org/light-mailbox-github.png)
 
 ## 💙 Support Kurrier
 

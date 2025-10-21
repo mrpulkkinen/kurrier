@@ -10,6 +10,7 @@ import KurrierLogo from "@/components/kurrier/kurrier-logo";
  */
 export function baseOptions(): BaseLayoutProps {
 	return {
+        githubUrl: 'https://github.com/kurrier-org/kurrier',
 		nav: {
 			title: (
 				<>
@@ -22,3 +23,4 @@ export function baseOptions(): BaseLayoutProps {
 		links: [],
 	};
 }
+
